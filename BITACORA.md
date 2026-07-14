@@ -16,13 +16,17 @@ que será el punto de partida para adaptarlo por pasos.
 - Inicializado el repositorio git en la rama `main` y añadido `.gitignore`.
 - Añadida la sección «Flujo de trabajo (Git + documentación)» a `CLAUDE.md`.
 - Creada esta bitácora.
+- Configurada la identidad de git (Irina Rubió <irinarubio07@gmail.com>) y hecho el primer commit (`1f14ca2`).
+- Generada una clave SSH (ed25519) en este equipo y añadida a GitHub; conexión verificada.
+- Conectado el remoto `origin` = `git@github.com:irinarubio07/mis-cuentas.git` y hecho el primer `push`.
+  El repositorio ya está publicado: https://github.com/irinarubio07/mis-cuentas
 
 **Pendiente / próximos pasos:**
-- [ ] Definir la identidad de git (nombre + email) para poder commitear.
-- [ ] Crear cuenta/repositorio en GitHub y hacer el primer `push`.
-- [ ] Clonar el repo en el portátil de casa.
-- [ ] Rellenar `config.js` con las claves reales de Supabase (solo una vez; viaja por git).
+- [ ] **Portátil de casa:** instalar Git + Claude Code, generar allí su PROPIA clave SSH y añadirla a GitHub,
+      y clonar con `git clone git@github.com:irinarubio07/mis-cuentas.git`.
+- [ ] **Supabase:** crear el proyecto, ejecutar `supabase-setup.sql` y rellenar `config.js` con la URL + clave
+      pública (anon). Sin esto la app no puede iniciar sesión todavía. Viaja por git, se hace una vez.
 - [ ] **Iconos:** la carpeta `icons/` está vacía; generar `icon-192/512/maskable`
-      (el service worker no llega a instalarse sin ellos). Primera mejora propuesta.
+      (el service worker no llega a instalarse sin ellos). Primera mejora de código propuesta.
 
 **Rutina para dos equipos:** al empezar en cualquier ordenador → `git pull`. Al terminar → `commit` + `push`.

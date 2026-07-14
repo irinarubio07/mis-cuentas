@@ -5,6 +5,20 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-14 — Iconos de la PWA (mejora A)
+
+**Hecho:**
+- Creado `tools/make-icons.py` (generador sin dependencias, solo librería estándar) y generados
+  los tres PNG que faltaban: `icons/icon-192.png`, `icons/icon-512.png`, `icons/icon-maskable-512.png`
+  (marca de la app: gráfico ascendente blanco sobre verde pino `#0E5C4A`).
+- Subida la versión del service worker `CACHE` (`...-v1` → `...-v2`) porque cambian los archivos
+  cacheados. Con los iconos ya presentes, `cache.addAll(...)` deja de fallar: el SW instala y la
+  PWA vuelve a ser instalable / con carga offline de la interfaz.
+
+**Siguiente:** poner en marcha Supabase (mejora B) para que la app inicie sesión y guarde datos.
+
+---
+
 ## 2026-07-14 — Puesta en marcha del repositorio
 
 **Contexto:** primera sesión. Se parte del proyecto base «Mis Cuentas» (PWA vanilla + Supabase),

@@ -10,6 +10,7 @@ create table if not exists public.transactions (
   type        text not null check (type in ('income','expense')),
   amount      numeric(12,2) not null check (amount > 0),
   category    text not null,
+  method      text not null default 'efectivo' check (method in ('efectivo','tarjeta')),
   date        date not null default current_date,
   note        text default '',
   created_at  timestamptz not null default now()
@@ -23,6 +24,12 @@ create table if not exists public.categories (
   name      text not null,
   icon      text default '🏷️'
 );
+
+-- 2b) Migración para bases de datos ya existentes: añade el método de pago
+--     (efectivo/tarjeta). Es idempotente: si la columna ya existe, no hace nada.
+alter table public.transactions
+  add column if not exists method text not null default 'efectivo'
+  check (method in ('efectivo','tarjeta'));
 
 -- 3) Índices para que las consultas vayan rápidas
 create index if not exists transactions_user_date_idx on public.transactions (user_id, date desc);

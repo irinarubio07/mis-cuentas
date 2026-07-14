@@ -5,6 +5,25 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-14 — Método de pago (efectivo/tarjeta) en movimientos 💵💳
+
+**Hecho:**
+- Nueva dimensión **método de pago** en cada movimiento (ingresos y gastos): `efectivo` o `tarjeta`.
+- **Base de datos:** columna `method` en `transactions` (default `efectivo`, check efectivo/tarjeta).
+  Añadida a `supabase-setup.sql` (en el CREATE y como ALTER idempotente para bases ya existentes).
+  ⚠️ La usuaria debe ejecutar ese ALTER en su Supabase para que el guardado funcione.
+- **Formulario «Nuevo movimiento»:** selector Método (💵 Efectivo / 💳 Tarjeta) antes de Categoría;
+  el insert incluye `method`. Si la columna aún no existe, el toast avisa de que falta el SQL.
+- **Movimientos:** segunda fila de filtros Todo / Efectivo / Tarjeta (se combina con Todos/Ingresos/
+  Gastos), tarjeta de **resumen** con el saldo del filtro activo (total de efectivo, de tarjeta o
+  combinado en «Todo») y cada fila muestra 💵/💳. Los movimientos sin método se tratan como efectivo.
+- Verificado en local con datos de prueba (solo en memoria del navegador, sin tocar Supabase):
+  filtros, resumen y sumas correctos (Todo 1310, Efectivo 160); consola sin errores. `CACHE` `v7`→`v8`.
+
+**Siguiente:** (a elegir) presupuestos por categoría, editar movimientos, vista anual, modo oscuro.
+
+---
+
 ## 2026-07-14 — Fecha en iOS + entrega fiable de actualizaciones 🍏
 
 **Hecho:**

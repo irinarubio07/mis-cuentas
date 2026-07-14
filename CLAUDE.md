@@ -59,7 +59,7 @@ Dos tablas en el esquema `public`, ambas con RLS activado y política "cada usua
 (ver `supabase-setup.sql`):
 
 - `transactions(id uuid, user_id uuid, type text['income'|'expense'], amount numeric(12,2)>0,
-  category text, date date, note text, created_at timestamptz)`
+  category text, method text['efectivo'|'tarjeta'] default 'efectivo', date date, note text, created_at timestamptz)`
 - `categories(id uuid, user_id uuid, type text['income'|'expense'], name text, icon text)`
 
 `user_id` referencia `auth.users(id)`. Si cambias el esquema, actualiza también `supabase-setup.sql`

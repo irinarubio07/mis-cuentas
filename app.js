@@ -34,6 +34,7 @@ function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function catIcon(type, name) { const c = state.cats[type].find(x => x.name === name); return c ? c.icon : (type === "income" ? "➕" : "📦"); }
+function txMethod(t) { return t.method === "tarjeta" ? "tarjeta" : "efectivo"; }   // por defecto: efectivo
 
 let toastTimer;
 function toast(msg) {
@@ -300,6 +301,7 @@ function buildCategoryCard(mTx) {
    VISTA: AÑADIR
    ============================================================ */
 let addType = "expense";
+let addMethod = "efectivo";
 function renderAdd() {
   const v = $("#view-add");
   v.innerHTML = `
@@ -312,6 +314,13 @@ function renderAdd() {
     <div class="amount-input">
       <input id="f-amount" inputmode="decimal" placeholder="0" />
       <span class="cur">${curSymbol()}</span>
+    </div>
+    <div class="field">
+      <label>Método</label>
+      <div class="chips" id="method-chips" style="margin-bottom:0">
+        <button type="button" class="chip" data-m="efectivo">💵 Efectivo</button>
+        <button type="button" class="chip" data-m="tarjeta">💳 Tarjeta</button>
+      </div>
     </div>
     <div class="field"><label for="f-cat">Categoría</label><select id="f-cat"></select></div>
     <div class="grid2">
@@ -330,6 +339,13 @@ function renderAdd() {
   v.querySelectorAll("#type-toggle button").forEach(b => b.addEventListener("click", () => setType(b.dataset.t)));
   setType(addType);
 
+  const setMethod = (m) => {
+    addMethod = m;
+    v.querySelectorAll("#method-chips .chip").forEach(c => c.classList.toggle("on", c.dataset.m === m));
+  };
+  v.querySelectorAll("#method-chips .chip").forEach(c => c.addEventListener("click", () => setMethod(c.dataset.m)));
+  setMethod(addMethod);
+
   $("#f-save", v).addEventListener("click", async () => {
     const amount = parseFloat($("#f-amount", v).value.replace(",", ".").trim());
     if (!amount || amount <= 0) { toast("Introduce un importe válido"); $("#f-amount", v).focus(); return; }
@@ -339,11 +355,16 @@ function renderAdd() {
       type: addType,
       amount: Math.round(amount * 100) / 100,
       category: $("#f-cat", v).value,
+      method: addMethod,
       date: $("#f-date", v).value || todayISO(),
       note: $("#f-note", v).value.trim(),
     };
     const { data, error } = await sb.from("transactions").insert(row).select().single();
-    if (error) { toast("No se pudo guardar"); btn.disabled = false; btn.textContent = "Guardar movimiento"; return; }
+    if (error) {
+      const faltaColumna = /method|column|schema cache/i.test(error.message || "");
+      toast(faltaColumna ? "Falta actualizar Supabase: ejecuta el SQL de la columna «method»." : "No se pudo guardar");
+      btn.disabled = false; btn.textContent = "Guardar movimiento"; return;
+    }
     state.tx.unshift(data);
     state.tx.sort((a, b) => b.date.localeCompare(a.date) || String(b.created_at).localeCompare(String(a.created_at)));
     toast(addType === "income" ? "Ingreso guardado ✓" : "Gasto guardado ✓");
@@ -355,6 +376,7 @@ function renderAdd() {
    VISTA: MOVIMIENTOS
    ============================================================ */
 let listFilter = "all";
+let listMethod = "all";
 function renderList() {
   const v = $("#view-list");
   const tx = state.tx;
@@ -366,9 +388,38 @@ function renderList() {
       <button class="chip ${listFilter === "income" ? "on" : ""}" data-f="income">Ingresos</button>
       <button class="chip ${listFilter === "expense" ? "on" : ""}" data-f="expense">Gastos</button>
     </div>
+    <div class="chips" id="method-filters">
+      <button class="chip ${listMethod === "all" ? "on" : ""}" data-m="all">Todo</button>
+      <button class="chip ${listMethod === "efectivo" ? "on" : ""}" data-m="efectivo">💵 Efectivo</button>
+      <button class="chip ${listMethod === "tarjeta" ? "on" : ""}" data-m="tarjeta">💳 Tarjeta</button>
+    </div>
+    <div id="list-summary"></div>
     <div id="list-body"></div>`;
   v.querySelectorAll("#list-filters .chip").forEach(c => c.addEventListener("click", () => { listFilter = c.dataset.f; renderList(); }));
-  const filtered = tx.filter(t => listFilter === "all" || t.type === listFilter);
+  v.querySelectorAll("#method-filters .chip").forEach(c => c.addEventListener("click", () => { listMethod = c.dataset.m; renderList(); }));
+
+  const filtered = tx.filter(t =>
+    (listFilter === "all" || t.type === listFilter) &&
+    (listMethod === "all" || txMethod(t) === listMethod));
+
+  // Resumen del filtro activo: total en efectivo, en tarjeta, o combinado ("Todo").
+  if (tx.length) {
+    const inTot = filtered.filter(t => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
+    const outTot = filtered.filter(t => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+    const methodLabel = listMethod === "efectivo" ? "💵 Efectivo" : listMethod === "tarjeta" ? "💳 Tarjeta" : "Todo";
+    $("#list-summary", v).innerHTML = `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Saldo · ${methodLabel}</div>
+          <div class="num" style="font-size:24px;font-weight:600">${fmt(inTot - outTot)}</div>
+        </div>
+        <div style="text-align:right;font-size:13px;line-height:1.5">
+          <div class="num" style="color:var(--income);font-weight:600">+${fmt(inTot).replace(/^[-+−]?/, "")}</div>
+          <div class="num" style="color:var(--expense);font-weight:600">−${fmt(outTot).replace(/^[-+−]?/, "")}</div>
+        </div>
+      </div>`;
+  }
+
   const body = $("#list-body", v);
   if (filtered.length === 0) { body.appendChild(emptyState("Nada por aquí", "No hay movimientos con este filtro.")); return; }
   const groups = {};
@@ -491,7 +542,7 @@ async function importData(e) {
       if (!confirm(`Se añadirán ${d.transactions.length} movimientos a tu cuenta. ¿Continuar?`)) return;
       const rows = d.transactions.map(t => ({
         user_id: state.user.id, type: t.type, amount: t.amount,
-        category: t.category, date: t.date, note: t.note || "",
+        category: t.category, method: t.method || "efectivo", date: t.date, note: t.note || "",
       }));
       const { error } = await sb.from("transactions").insert(rows);
       if (error) throw error;
@@ -514,7 +565,7 @@ function txListEl(list, withDelete) {
     row.innerHTML = `
       <div class="tx-ic ${io}">${catIcon(t.type, t.category)}</div>
       <div class="tx-meta"><div class="tx-cat">${escapeHtml(t.category)}</div>
-        <div class="tx-sub">${fmtDate(t.date)}${t.note ? " · " + escapeHtml(t.note) : ""}</div></div>
+        <div class="tx-sub">${fmtDate(t.date)} · ${txMethod(t) === "tarjeta" ? "💳" : "💵"}${t.note ? " · " + escapeHtml(t.note) : ""}</div></div>
       <div class="tx-amt ${io} num">${sign}${fmt(t.amount).replace(/^[-+−]?/, "")}</div>`;
     if (withDelete) {
       const del = el("button", "tx-del");

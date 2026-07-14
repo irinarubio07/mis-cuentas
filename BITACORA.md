@@ -5,6 +5,20 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-14 — Supabase conectado (mejora B)
+
+**Hecho:**
+- Creado el proyecto Supabase `mis-cuentas` (Project ID `jfaahwitcosygbksvmvy`, región eu-central-1),
+  ejecutado `supabase-setup.sql` (tablas + RLS) y rellenado `config.js` con la URL y la clave
+  **publishable** (pública, `sb_publishable_...`).
+- Verificado vía REST: credenciales válidas (200) y tablas `transactions` y `categories`
+  existentes con RLS activo (consulta anónima devuelve `[]`). La app ya puede iniciar sesión.
+
+**Siguiente:** publicar en GitHub Pages para usar la app desde el móvil y los dos equipos, y
+probar el registro/login real.
+
+---
+
 ## 2026-07-14 — Iconos de la PWA (mejora A)
 
 **Hecho:**

@@ -12,6 +12,6 @@
    ⚠️  NO uses nunca la clave "secret" / "service_role" aquí.
    ===================================================================== */
 window.SUPABASE_CONFIG = {
-  url: "TU_SUPABASE_URL",
-  key: "TU_CLAVE_PUBLICA"
+  url: "https://jfaahwitcosygbksvmvy.supabase.co",
+  key: "sb_publishable_pT_XqvV3xF1poKru9pzWig_ttoz2YVA"
 };

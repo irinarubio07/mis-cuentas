@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mis Cuentas</title>
+<meta name="description" content="Control personal de ingresos y gastos, sincronizado entre dispositivos" />
+<meta name="theme-color" content="#0E5C4A" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mis Cuentas" />
+<style>
+  :root{
+    --paper:#F5F6F1; --surface:#FFFFFF; --ink:#16211C; --muted:#66756D; --hair:#E4E8E1;
+    --pine:#0E5C4A; --pine-deep:#0A473A; --income:#1B8A5A; --income-soft:#E7F3EC;
+    --expense:#C6442E; --expense-soft:#FBEAE5; --focus:#0E5C4A;
+    --shadow:0 1px 2px rgba(22,33,28,.06),0 8px 24px rgba(22,33,28,.06);
+    --radius:16px;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,"Roboto Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.4}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:16px}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:6px}
+  .hidden{display:none!important}
+
+  /* ---------- AUTH / CONFIG ---------- */
+  .gate{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;
+    padding:32px 24px calc(32px + env(safe-area-inset-bottom));max-width:440px;margin:0 auto}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:40px}
+  .brand-mark{width:44px;height:44px;border-radius:12px;background:var(--pine);display:grid;place-items:center;color:#fff;box-shadow:var(--shadow)}
+  .brand-mark svg{width:26px;height:26px}
+  .brand-name{font-weight:650;font-size:20px;letter-spacing:-.02em}
+  .gate h1{font-size:28px;line-height:1.15;letter-spacing:-.03em;margin:0 0 6px;font-weight:680}
+  .gate p.sub{color:var(--muted);margin:0 0 28px;font-size:15px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+  .field input{width:100%;padding:14px;border:1.5px solid var(--hair);border-radius:12px;background:var(--surface);color:var(--ink);transition:border-color .15s}
+  .field input:focus{outline:none;border-color:var(--pine)}
+  .btn{width:100%;padding:15px;border:none;border-radius:12px;background:var(--pine);color:#fff;font-weight:640;font-size:16px;letter-spacing:-.01em;transition:background .15s,transform .05s}
+  .btn:hover{background:var(--pine-deep)} .btn:active{transform:translateY(1px)}
+  .btn[disabled]{opacity:.55;cursor:default}
+  .btn.ghost{background:transparent;color:var(--pine);border:1.5px solid var(--hair)}
+  .btn.ghost:hover{background:#fff;border-color:var(--pine)}
+  .btn.danger{background:var(--expense)} .btn.danger:hover{background:#a5361f}
+  .msg{font-size:13px;margin-top:12px;min-height:18px}
+  .msg.err{color:var(--expense)} .msg.ok{color:var(--income)}
+  .switch{margin-top:20px;font-size:14px;color:var(--muted);text-align:center}
+  .switch a{color:var(--pine);font-weight:600;cursor:pointer;text-decoration:none}
+  .gate-note{margin-top:22px;font-size:12.5px;color:var(--muted);line-height:1.5;border-top:1px solid var(--hair);padding-top:18px}
+  pre.code{background:var(--ink);color:#EAF0EC;padding:14px;border-radius:12px;font-family:var(--mono);font-size:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:12px 0}
+
+  /* ---------- APP SHELL ---------- */
+  #app{max-width:520px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+  header.appbar{position:sticky;top:0;z-index:20;background:var(--pine);color:#fff;
+    padding:calc(14px + env(safe-area-inset-top)) 20px 14px;display:flex;align-items:center;justify-content:space-between}
+  header.appbar .title{font-weight:650;font-size:18px;letter-spacing:-.02em}
+  header.appbar .logout{background:rgba(255,255,255,.14);border:none;color:#fff;width:36px;height:36px;border-radius:10px;display:grid;place-items:center}
+  header.appbar .logout:hover{background:rgba(255,255,255,.24)}
+  header.appbar .logout svg{width:18px;height:18px}
+
+  main{flex:1;padding:20px 16px calc(96px + env(safe-area-inset-bottom))}
+  .view{animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.view,.gate,*{animation:none!important}}
+
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
+  .card h2{margin:0 0 14px;font-size:13px;font-weight:640;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .balance-card{background:var(--pine);color:#fff;border:none}
+  .balance-card .lbl{font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;opacity:.72;margin-bottom:6px}
+  .balance-card .amount{font-size:40px;font-weight:600;letter-spacing:-.03em;line-height:1}
+  .balance-card .month{opacity:.75;font-size:13px;margin-top:10px}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+  .stat{background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+  .stat .k{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:8px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none} .dot.in{background:var(--income)} .dot.out{background:var(--expense)}
+  .stat .v{font-size:22px;font-weight:600;letter-spacing:-.02em}
+  .v.in{color:var(--income)} .v.out{color:var(--expense)}
+  .chart{width:100%;height:150px;display:block}
+  .chart-legend{display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--muted)}
+  .chart-legend span{display:flex;align-items:center;gap:6px}
+  .catrow{display:flex;align-items:center;gap:10px;margin-bottom:12px} .catrow:last-child{margin-bottom:0}
+  .cat-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px;flex:none;background:var(--expense-soft)}
+  .cat-meta{flex:1;min-width:0}
+  .cat-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:5px}
+  .cat-name{font-size:14px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cat-val{font-size:14px;font-weight:600}
+  .bar{height:6px;background:var(--hair);border-radius:99px;overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:99px;background:var(--expense)}
+  .txlist{display:flex;flex-direction:column}
+  .tx{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--hair)} .tx:last-child{border-bottom:none}
+  .tx-ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:18px;flex:none}
+  .tx-ic.in{background:var(--income-soft)} .tx-ic.out{background:var(--expense-soft)}
+  .tx-meta{flex:1;min-width:0}
+  .tx-cat{font-size:15px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tx-sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .tx-amt{font-size:15px;font-weight:600;white-space:nowrap} .tx-amt.in{color:var(--income)} .tx-amt.out{color:var(--expense)}
+  .tx-del{background:none;border:none;color:var(--muted);padding:6px;border-radius:8px;flex:none}
+  .tx-del:hover{background:var(--expense-soft);color:var(--expense)} .tx-del svg{width:16px;height:16px;display:block}
+  .empty{text-align:center;padding:30px 16px;color:var(--muted)} .empty .big{font-size:32px;margin-bottom:8px} .empty p{margin:0;font-size:14px}
+  .toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--hair);padding:5px;border-radius:14px;margin-bottom:20px}
+  .toggle button{border:none;background:transparent;padding:12px;border-radius:10px;font-weight:640;font-size:15px;color:var(--muted);transition:.15s}
+  .toggle button.on[data-t="expense"]{background:var(--surface);color:var(--expense);box-shadow:var(--shadow)}
+  .toggle button.on[data-t="income"]{background:var(--surface);color:var(--income);box-shadow:var(--shadow)}
+  .amount-input{position:relative;margin-bottom:18px}
+  .amount-input input{width:100%;padding:20px 46px 20px 20px;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:34px;font-weight:600;text-align:right;border:1.5px solid var(--hair);border-radius:14px;background:var(--surface);color:var(--ink)}
+  .amount-input input:focus{outline:none;border-color:var(--pine)}
+  .amount-input .cur{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:22px;color:var(--muted);font-family:var(--mono)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  select,textarea{width:100%;padding:13px 14px;border:1.5px solid var(--hair);border-radius:12px;background:var(--surface);color:var(--ink)}
+  select:focus,textarea:focus{outline:none;border-color:var(--pine)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{padding:8px 14px;border:1.5px solid var(--hair);border-radius:99px;background:var(--surface);font-size:13.5px;font-weight:550;color:var(--muted)}
+  .chip.on{background:var(--pine);color:#fff;border-color:var(--pine)}
+  .set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--hair)} .set-row:last-child{border-bottom:none}
+  .set-row .st{font-size:14.5px;font-weight:550} .set-row .sd{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .taglist{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:6px 8px 6px 12px;background:var(--paper);border:1px solid var(--hair);border-radius:99px;font-size:13px}
+  .tag button{border:none;background:none;color:var(--muted);font-size:15px;line-height:1;padding:0 2px} .tag button:hover{color:var(--expense)}
+  .addcat{display:flex;gap:8px;margin-top:10px}
+  .addcat input{flex:1;padding:10px 12px;border:1.5px solid var(--hair);border-radius:10px;background:var(--surface)}
+  .addcat button{padding:0 16px;border:none;border-radius:10px;background:var(--pine);color:#fff;font-weight:600}
+  nav.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--surface);border-top:1px solid var(--hair);display:flex;max-width:520px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom)}
+  nav.tabbar button{flex:1;background:none;border:none;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);position:relative}
+  nav.tabbar button svg{width:23px;height:23px} nav.tabbar button span{font-size:10.5px;font-weight:600}
+  nav.tabbar button.on{color:var(--pine)} nav.tabbar button.add{color:var(--pine)}
+  nav.tabbar button.add .plus{width:44px;height:44px;border-radius:14px;background:var(--pine);color:#fff;display:grid;place-items:center;margin-top:-6px;box-shadow:var(--shadow)}
+  nav.tabbar button.add .plus svg{width:24px;height:24px}
+  #toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:99px;font-size:14px;font-weight:550;z-index:60;opacity:0;pointer-events:none;transition:.25s;box-shadow:var(--shadow);white-space:nowrap;max-width:90vw}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  h1.view-title{font-size:24px;letter-spacing:-.03em;margin:0 0 4px;font-weight:680}
+  p.view-sub{color:var(--muted);margin:0 0 20px;font-size:14px}
+  .spinner{width:34px;height:34px;border:3px solid var(--hair);border-top-color:var(--pine);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #splash{position:fixed;inset:0;display:grid;place-items:center;background:var(--paper);z-index:80}
+</style>
+</head>
+<body>
+
+<!-- Splash mientras arranca -->
+<div id="splash"><div class="spinner"></div></div>
+
+<!-- ===================== CONFIG FALTANTE ===================== -->
+<section id="config-screen" class="gate hidden">
+  <div class="brand"><div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></div><div class="brand-name">Mis Cuentas</div></div>
+  <h1>Falta configurar Supabase</h1>
+  <p class="sub">Abre el archivo <strong>config.js</strong> y pega la URL y la clave pública (anon/publishable) de tu proyecto de Supabase.</p>
+  <pre class="code">window.SUPABASE_CONFIG = {
+  url: "https://xxxx.supabase.co",
+  key: "eyJhbGci... (clave pública)"
+};</pre>
+  <p class="gate-note">Las encuentras en tu panel de Supabase, en <strong>Project Settings → API</strong>. Usa la clave <strong>pública</strong> (anon / publishable), nunca la secreta.</p>
+</section>
+
+<!-- ===================== ACCESO ===================== -->
+<section id="auth-screen" class="gate hidden">
+  <div class="brand"><div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></div><div class="brand-name">Mis Cuentas</div></div>
+  <h1 id="auth-title">Inicia sesión</h1>
+  <p class="sub" id="auth-sub">Entra para ver tus cuentas en cualquier ordenador.</p>
+  <form id="auth-form" autocomplete="on">
+    <div class="field">
+      <label for="email">Correo electrónico</label>
+      <input id="email" type="email" autocomplete="email" placeholder="tu@correo.com" required />
+    </div>
+    <div class="field">
+      <label for="password">Contraseña</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+    </div>
+    <button class="btn" type="submit" id="auth-btn">Entrar</button>
+    <div class="msg" id="auth-msg"></div>
+  </form>
+  <div class="switch" id="auth-switch"></div>
+</section>
+
+<!-- ===================== APP ===================== -->
+<div id="app" class="hidden">
+  <header class="appbar">
+    <div class="title" id="appbar-title">Panel</div>
+    <button class="logout" id="logout-btn" title="Cerrar sesión" aria-label="Cerrar sesión">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </header>
+  <main>
+    <section class="view" id="view-panel"></section>
+    <section class="view hidden" id="view-add"></section>
+    <section class="view hidden" id="view-list"></section>
+    <section class="view hidden" id="view-settings"></section>
+  </main>
+  <nav class="tabbar">
+    <button data-view="panel" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Panel</span></button>
+    <button data-view="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Movimientos</span></button>
+    <button data-view="add" class="add"><div class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></button>
+    <button data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Ajustes</span></button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<!-- Librería de Supabase (desde CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Tu configuración (edítala) -->
+<script src="config.js"></script>
+<!-- Lógica de la app -->
+<script src="app.js"></script>
+</body>
+</html>

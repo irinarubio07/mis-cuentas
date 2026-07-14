@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Logs y temporales
+*.log
+
+# Variables de entorno locales (por si acaso)
+.env
+.env.*
+
+# NOTA: config.js SÍ se versiona a propósito. Solo contiene la clave PÚBLICA (anon)
+# de Supabase, que está pensada para el navegador; la seguridad la da RLS.
+# NUNCA pongas aquí la clave secreta / service_role.

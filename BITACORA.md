@@ -5,6 +5,31 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-14 — Nueva paleta veraniega (azul pálido + amarillo + lila) 🌤️
+
+**Hecho:**
+- Rediseñada la paleta a petición de la usuaria (la terracota anterior no le gustó): fondo
+  **amarillo anaranjado difuminado** (degradado en `body`), marca en **azul pálido veraniego**
+  (`--pine` `#8FBFDB`), ingresos **verde** (`--income` `#2E9E52`), gastos **rojo rosado**
+  (`--expense` `#CE4463`) e **iconos de la barra en lila** (`--lilac` `#B8A6E0`; el activo y el
+  botón "+" en `--lilac-deep` `#7A5CBE`).
+- Como la marca ahora es **clara**, el texto que va encima (barra, tarjeta de saldo, botones,
+  chips) pasó de blanco a **azul oscuro** con un token nuevo `--on-pine` `#123A50`.
+- Sincronizado a juego: `<meta theme-color>` y el `manifest` (`theme_color` `#8FBFDB`,
+  `background_color` `#FFF1CE`), **iconos regenerados** (`tools/make-icons.py`: fondo azul pálido
+  + marca azul oscuro) y versión del service worker `CACHE` `v3`→`v4`. `app.js` no necesitó
+  cambios (la gráfica ya usa `var(--income/--expense)`).
+- **Verificado en local** con sesión iniciada: panel y «nuevo movimiento» se ven correctos y
+  legibles (contraste: texto oscuro sobre la marca ~6:1; cifras ≥4:1) y la consola no da errores.
+- ⚠️ **Aviso SW:** el service worker seguía sirviendo la versión anterior desde caché; hubo que
+  limpiarla para ver los cambios. Al cambiar estilos, tras subir el `CACHE` puede hacer falta
+  **recargar dos veces** (o limpiar el SW) para que se vea lo nuevo.
+
+**Siguiente:** elegir la próxima mejora funcional (presupuestos, filtros/búsqueda, editar
+movimientos, vista anual, modo oscuro).
+
+---
+
 ## 2026-07-14 — Paleta cálida/veraniega (terracota) 🌅
 
 **Hecho:**

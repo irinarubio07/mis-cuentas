@@ -2,8 +2,8 @@
 # =====================================================================
 #  Generador de iconos de «Mis Cuentas» (sin dependencias externas)
 #  ---------------------------------------------------------------------
-#  Dibuja la marca de la app (ejes + línea ascendente, en blanco sobre
-#  verde pino) y escribe los PNG que usan el manifest, el index.html y
+#  Dibuja la marca de la app (ejes + línea ascendente, en azul oscuro sobre
+#  azul pálido) y escribe los PNG que usan el manifest, el index.html y
 #  el service worker:
 #     icons/icon-192.png          (192x192, purpose "any")
 #     icons/icon-512.png          (512x512, purpose "any")
@@ -18,8 +18,8 @@ import os
 import zlib
 import struct
 
-PINE = (174, 93, 66)    # #AE5D42  (fondo de marca de la app — terracota cálida)
-WHITE = (255, 255, 255)
+PINE = (143, 191, 219)  # #8FBFDB  (fondo de marca — azul pálido veraniego)
+MARK = (18, 58, 80)     # #123A50  (marca: azul oscuro, legible sobre el azul pálido)
 
 # Marca de la app en un lienzo de 24x24 (idéntica al SVG de index.html):
 #   ejes:  M3 3 v18 h18       -> (3,3)->(3,21)->(21,21)
@@ -37,7 +37,7 @@ SEGS_24 = _segments(AXIS) + _segments(LINE)
 
 
 def render(size, glyph_frac):
-    """Devuelve bytes RGBA (size*size*4). Fondo pino a sangre + marca blanca.
+    """Devuelve bytes RGBA (size*size*4). Fondo azul pálido a sangre + marca azul oscuro.
     Antialias por supermuestreo (SS) y promediado por cobertura."""
     SS = 4 if size <= 192 else 3
     S = size * SS
@@ -86,9 +86,9 @@ def render(size, glyph_frac):
                                 w += 1
                                 break
             k = n - w                    # subpíxeles de fondo
-            buf[idx]     = (WHITE[0] * w + PINE[0] * k) // n
-            buf[idx + 1] = (WHITE[1] * w + PINE[1] * k) // n
-            buf[idx + 2] = (WHITE[2] * w + PINE[2] * k) // n
+            buf[idx]     = (MARK[0] * w + PINE[0] * k) // n
+            buf[idx + 1] = (MARK[1] * w + PINE[1] * k) // n
+            buf[idx + 2] = (MARK[2] * w + PINE[2] * k) // n
             buf[idx + 3] = 255
             idx += 4
     return buf

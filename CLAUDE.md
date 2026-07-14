@@ -68,11 +68,12 @@ y da al usuario el SQL de migración a ejecutar en su proyecto (no tienes acceso
 ## Convenciones (respétalas)
 
 - **Idioma:** toda la UI y los textos, en español.
-- **Diseño:** los colores y tipos son variables CSS en `:root` (en `index.html`). Estética de
-  "libro de cuentas": cifras con fuente **monoespaciada** y `tabular-nums` (clase `.num`);
-  **verde** (`--income`) para ingresos y **rosa coral** (`--expense`) para gastos, sobre una base
-  **cálida y veraniega** (terracota `--pine` + papel crema `--paper`). Reutiliza estas
-  variables; no metas colores sueltos.
+- **Diseño:** los colores y tipos son variables CSS en `:root` (en `index.html`). Estética
+  **veraniega**: cifras con fuente **monoespaciada** y `tabular-nums` (clase `.num`); marca en
+  **azul pálido** (`--pine`, con texto oscuro `--on-pine` encima), fondo **amarillo anaranjado
+  difuminado** (degradado en `body`), **verde** (`--income`) para ingresos, **rojo rosado**
+  (`--expense`) para gastos y **lila** (`--lilac` / `--lilac-deep`) en los iconos de la barra de
+  pestañas. Reutiliza estas variables; no metas colores sueltos.
 - **Patrón de datos en `app.js`:** hay un objeto `state` en memoria (`state.tx`, `state.cats`,
   `state.user`, `state.currency`). Las funciones de render son **síncronas** y leen de `state`.
   Las mutaciones son **async**: llaman a Supabase, y solo si va bien actualizan `state` y

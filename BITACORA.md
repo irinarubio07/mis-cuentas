@@ -5,6 +5,27 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-14 — Paleta cálida/veraniega (terracota) 🌅
+
+**Hecho:**
+- Cambiada la paleta a una **cálida y veraniega** (terracota/melocotón sobre crema), a partir de
+  una referencia pastel de la usuaria («colores más cálidos, no tan fuertes»).
+- Nuevos tokens en `:root` (`index.html`): marca `--pine` `#AE5D42` (terracota), papel `--paper`
+  `#FCF4EC`, tinta `#4A342B`, ingresos `--income` `#47835B` (verde), gastos `--expense` `#C1546E`
+  (rosa hibisco), + tintes suaves a juego y sombra cálida. Todo lo demás cascada desde estas variables.
+- Sincronizados los puntos que deben ir a juego: `<meta theme-color>` y el `manifest`
+  (`theme_color`/`background_color`), y **regenerados los 3 iconos** con `tools/make-icons.py`
+  (constante `PINE` → terracota). Subida la versión del service worker `CACHE` `v2`→`v3`.
+- **Contraste verificado** (blanco sobre la marca 4.73:1; cifras sobre el papel ≥4:1) y comprobado
+  en local: la pantalla de login se ve correcta y la consola no da errores. El panel y los
+  movimientos comparten las mismas variables (no se pudo iniciar sesión real desde aquí para verlos
+  en vivo, pero heredan los colores nuevos).
+
+**Siguiente:** elegir la próxima mejora funcional (presupuestos, filtros/búsqueda, editar movimientos,
+vista anual, modo oscuro).
+
+---
+
 ## 2026-07-14 — Publicado y en marcha 🎉
 
 **Hecho:**

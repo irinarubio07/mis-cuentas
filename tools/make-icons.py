@@ -18,7 +18,7 @@ import os
 import zlib
 import struct
 
-PINE = (14, 92, 74)     # #0E5C4A  (fondo de marca de la app)
+PINE = (174, 93, 66)    # #AE5D42  (fondo de marca de la app — terracota cálida)
 WHITE = (255, 255, 255)
 
 # Marca de la app en un lienzo de 24x24 (idéntica al SVG de index.html):

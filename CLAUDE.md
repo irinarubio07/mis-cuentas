@@ -70,7 +70,8 @@ y da al usuario el SQL de migración a ejecutar en su proyecto (no tienes acceso
 - **Idioma:** toda la UI y los textos, en español.
 - **Diseño:** los colores y tipos son variables CSS en `:root` (en `index.html`). Estética de
   "libro de cuentas": cifras con fuente **monoespaciada** y `tabular-nums` (clase `.num`);
-  **verde** (`--income`) para ingresos, **coral** (`--expense`) para gastos. Reutiliza estas
+  **verde** (`--income`) para ingresos y **rosa coral** (`--expense`) para gastos, sobre una base
+  **cálida y veraniega** (terracota `--pine` + papel crema `--paper`). Reutiliza estas
   variables; no metas colores sueltos.
 - **Patrón de datos en `app.js`:** hay un objeto `state` en memoria (`state.tx`, `state.cats`,
   `state.user`, `state.currency`). Las funciones de render son **síncronas** y leen de `state`.

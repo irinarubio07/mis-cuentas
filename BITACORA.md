@@ -5,6 +5,22 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-14 — Arreglo: Fecha y Nota se solapaban en móvil 📱
+
+**Hecho:**
+- En «Nuevo movimiento», la fila Fecha + Nota (`.grid2`, dos columnas `1fr 1fr`) se apretaba y
+  llegaba a solaparse en móvil: el `input[type=date]` nativo no encoge por debajo de su ancho
+  mínimo y empujaba al campo de Nota.
+- Arreglo en `index.html`: `.grid2` pasa a `minmax(0,1fr) minmax(0,1fr)` (las columnas ya pueden
+  encoger) y, en pantallas estrechas, `@media (max-width:440px)` las **apila** en una sola
+  columna a lo ancho. Reproducido a 320px y verificado que ya no se solapan; consola sin errores.
+- Subida la versión del service worker `CACHE` `v4`→`v5`.
+
+**Siguiente:** elegir la próxima mejora funcional (presupuestos, filtros/búsqueda, editar
+movimientos, vista anual, modo oscuro).
+
+---
+
 ## 2026-07-14 — Nueva paleta veraniega (azul pálido + amarillo + lila) 🌤️
 
 **Hecho:**

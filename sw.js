@@ -2,7 +2,7 @@
    Cachea la interfaz para que la app abra rápido y sin conexión.
    Los datos se leen/escriben en Supabase, por lo que las operaciones
    con datos necesitan internet. Sube la versión al cambiar archivos. */
-const CACHE = "mis-cuentas-cloud-v6";
+const CACHE = "mis-cuentas-cloud-v7";
 const ASSETS = [
   "./", "./index.html", "./app.js", "./config.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",
@@ -23,13 +23,28 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(request.url);
   // No interceptar las llamadas a la API de Supabase: siempre a la red.
   if (url.hostname.endsWith("supabase.co")) return;
-  e.respondWith(
-    caches.match(request).then((cached) =>
-      cached || fetch(request).then((res) => {
+
+  const propio = url.origin === self.location.origin;
+  if (propio) {
+    // Nuestros archivos (HTML/JS/CSS/iconos): network-first.
+    // Con conexión se ve SIEMPRE la última versión; sin conexión, la caché.
+    e.respondWith(
+      fetch(request).then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
         return res;
-      }).catch(() => caches.match("./index.html"))
-    )
-  );
+      }).catch(() => caches.match(request).then((c) => c || caches.match("./index.html")))
+    );
+  } else {
+    // Recursos externos (p. ej. supabase-js del CDN): cache-first, para poder abrir sin conexión.
+    e.respondWith(
+      caches.match(request).then((cached) =>
+        cached || fetch(request).then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
+          return res;
+        })
+      )
+    );
+  }
 });

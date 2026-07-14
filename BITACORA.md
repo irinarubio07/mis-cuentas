@@ -5,6 +5,25 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-14 — Fecha en iOS + entrega fiable de actualizaciones 🍏
+
+**Hecho:**
+- La usuaria seguía viendo la caja de Fecha distinta (alta y con la fecha centrada). Causa: en
+  **iOS**, `input[type=date]` con apariencia nativa se dibuja alto/centrado, y el navegador
+  Chromium integrado (con el que verifico) NO reproduce ese render — por eso no se detectaba, y el
+  `height:50px` de v6 no bastaba.
+- Arreglo iOS en `index.html`: `input[type=date]` → `-webkit-appearance:none; appearance:none;
+  text-align:left` y `::-webkit-date-and-time-value{margin:0;text-align:left}` (quita el margen
+  interno que le daba altura y lo centraba). Ahora se comporta como un input de texto.
+- **Service worker → network-first** para nuestros archivos (HTML/JS/CSS/iconos): con conexión se
+  ve SIEMPRE la última versión al abrir; sin conexión, la caché. Los recursos externos (supabase-js
+  del CDN) siguen cache-first para abrir offline. Resuelve el problema recurrente de que las
+  actualizaciones no llegaban al móvil. `CACHE` `v6`→`v7`.
+- Verificado en Chromium (sin regresión: fecha y nota a 50px, alineadas; consola sin errores). El
+  render de iOS no se puede reproducir aquí; pendiente de que la usuaria lo confirme en su iPhone.
+
+---
+
 ## 2026-07-14 — Ajuste: caja de Fecha igual de alta que la de Nota 📐
 
 **Hecho:**

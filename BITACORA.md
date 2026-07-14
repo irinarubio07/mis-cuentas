@@ -5,6 +5,17 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-14 — Ajuste: caja de Fecha igual de alta que la de Nota 📐
+
+**Hecho:**
+- Tras apilar Fecha/Nota, la caja de Fecha quedaba ~2px más alta que la de Nota (el
+  `input[type=date]` nativo tiene una altura intrínseca mayor). Igualadas con
+  `.grid2 .field input{height:50px}` (altura fija → misma caja en cualquier dispositivo).
+  Medido y verificado: ambas 50px, sin recortar la fecha ni el icono del calendario.
+- Subida la versión del service worker `CACHE` `v5`→`v6`.
+
+---
+
 ## 2026-07-14 — Arreglo: Fecha y Nota se solapaban en móvil 📱
 
 **Hecho:**

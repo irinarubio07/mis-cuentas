@@ -5,6 +5,19 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-14 — Publicado y en marcha 🎉
+
+**Hecho:**
+- Activado **GitHub Pages** (Deploy from a branch: `main` / root). La app está **en vivo** en
+  **https://irinarubio07.github.io/mis-cuentas/** (verificado HTTP 200, con `config.js` real e iconos).
+- **Puesta en marcha COMPLETA:** sincronización entre 2 equipos (Git + SSH), PWA con iconos,
+  Supabase conectado y verificado, y hosting en Pages. La app ya se usa y se instala en el móvil.
+
+**Siguiente (próximas sesiones):** elegir mejoras — presupuestos por categoría, filtros/búsqueda
+en el historial, editar movimientos, vista anual comparativa, modo oscuro.
+
+---
+
 ## 2026-07-14 — Supabase conectado (mejora B)
 
 **Hecho:**

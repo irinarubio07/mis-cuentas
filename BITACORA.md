@@ -5,6 +5,20 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-15 — Ahorro: bote único + metas afinadas 🐷
+
+**Hecho (ajuste sobre la pestaña Ahorro, según feedback):**
+- **Ahorro** pasa a ser un **único bote** («Ahorro acumulado») al que solo se **suma** dinero
+  (＋ Añadir), en vez de una lista. Se guarda como el registro `goals` sin objetivo (target NULL);
+  se crea solo al añadir por primera vez.
+- **Metas:** el alta se simplifica a **nombre + objetivo** (se quita el selector de icono; icono
+  fijo 🎯) y el objetivo pasa a ser **obligatorio**.
+- Cada meta muestra **«X € / objetivo €»** con **barra horizontal** que se va llenando, el % y
+  «faltan Z».
+- Verificado en local con datos en memoria; consola sin errores. `CACHE` `v9`→`v10`.
+
+---
+
 ## 2026-07-15 — Nueva pestaña «Ahorro» (metas y ahorro) 🎯
 
 **Hecho:**

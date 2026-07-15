@@ -442,88 +442,105 @@ function renderList() {
 /* ============================================================
    VISTA: AHORRO / METAS
    ============================================================ */
+function askAmount(msg) {
+  const raw = prompt(msg);
+  if (raw == null) return null;
+  const n = parseFloat(String(raw).replace(",", ".").trim());
+  if (!n || n <= 0) { toast("Cantidad no válida"); return null; }
+  return Math.round(n * 100) / 100;
+}
+function goalsTableMissing(error) {
+  return /goals|relation|does not exist|schema cache/i.test((error && error.message) || "");
+}
+
 function renderSavings() {
   const v = $("#view-savings");
-  const goals = state.goals;
-  const totalSaved = goals.reduce((s, g) => s + Number(g.saved || 0), 0);
-  const icons = ["🎯", "✈️", "🏠", "🚗", "🎁", "💻", "🏝️", "🎓", "💍", "📱", "🐷", "❤️"];
+  const metas = state.goals.filter(g => g.target != null);
+  const pot = state.goals.find(g => g.target == null);      // el "bote" de ahorro (único, sin objetivo)
+  const ahorro = pot ? Number(pot.saved || 0) : 0;
+
   v.innerHTML = `
     <h1 class="view-title">Ahorro</h1>
-    <p class="view-sub">Tus metas y tu ahorro, aparte del saldo.</p>
-    <div class="card savings-head">
-      <div>
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total ahorrado</div>
-        <div class="num" style="font-size:24px;font-weight:600">${fmt(totalSaved)}</div>
+    <p class="view-sub">Tu ahorro y tus metas, aparte del saldo.</p>
+
+    <div class="section-label" style="margin-top:4px">Ahorro</div>
+    <div class="card">
+      <div class="goal-top">
+        <div class="goal-ic">🐷</div>
+        <div class="goal-name">Ahorro acumulado</div>
+        <div class="goal-saved num">${fmt(ahorro)}</div>
       </div>
-      <button class="btn" id="new-goal-btn" style="width:auto;padding:12px 16px">＋ Nueva</button>
+      <div class="goal-actions">
+        <button class="add" id="ahorro-add">＋ Añadir dinero</button>
+      </div>
     </div>
+
+    <div class="section-label">Metas</div>
+    <button class="btn" id="new-goal-btn" style="margin-bottom:12px">＋ Nueva meta</button>
     <div class="card hidden" id="new-goal-form">
       <div class="field"><label for="g-name">Nombre</label><input id="g-name" type="text" placeholder="Ej. Viaje a Japón" /></div>
-      <div class="grid2">
-        <div class="field"><label for="g-target">Objetivo (opcional)</label><input id="g-target" inputmode="decimal" placeholder="Ej. 1200" /></div>
-        <div class="field"><label for="g-icon">Icono</label><select id="g-icon">${icons.map(e => `<option value="${e}">${e}</option>`).join("")}</select></div>
-      </div>
-      <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Deja el objetivo vacío para ir acumulando sin un precio fijo.</p>
-      <button class="btn" id="g-create">Crear</button>
+      <div class="field"><label for="g-target">Objetivo (€)</label><input id="g-target" inputmode="decimal" placeholder="Ej. 1200" /></div>
+      <button class="btn" id="g-create">Crear meta</button>
     </div>
-    <div id="goals-target"></div>
-    <div id="goals-open"></div>`;
+    <div id="metas-list"></div>`;
 
+  // Ahorro: un único bote, solo se le va sumando dinero.
+  $("#ahorro-add", v).addEventListener("click", async () => {
+    const amt = askAmount("¿Cuánto añades al ahorro?");
+    if (amt == null) return;
+    if (pot) {
+      const nv = Math.round((Number(pot.saved || 0) + amt) * 100) / 100;
+      const { error } = await sb.from("goals").update({ saved: nv }).eq("id", pot.id);
+      if (error) { toast("No se pudo guardar"); return; }
+      pot.saved = nv;
+    } else {
+      const { data, error } = await sb.from("goals").insert({ user_id: state.user.id, name: "Ahorro", target: null, saved: amt, icon: "🐷" }).select().single();
+      if (error) { toast(goalsTableMissing(error) ? "Falta crear la tabla en Supabase: ejecuta el SQL de «goals»." : "No se pudo guardar"); return; }
+      state.goals.push(data);
+    }
+    renderSavings();
+  });
+
+  // Nueva meta: nombre + objetivo (obligatorio), sin icono.
   $("#new-goal-btn", v).addEventListener("click", () => $("#new-goal-form", v).classList.toggle("hidden"));
-
   $("#g-create", v).addEventListener("click", async () => {
     const name = $("#g-name", v).value.trim();
     if (!name) { toast("Ponle un nombre a la meta"); return; }
     const traw = $("#g-target", v).value.replace(",", ".").trim();
     const target = traw ? Math.round(parseFloat(traw) * 100) / 100 : null;
-    if (traw && (!target || target <= 0)) { toast("Objetivo no válido"); return; }
-    const icon = $("#g-icon", v).value || "🎯";
-    const { data, error } = await sb.from("goals").insert({ user_id: state.user.id, name, target, saved: 0, icon }).select().single();
-    if (error) {
-      const falta = /goals|relation|does not exist|schema cache/i.test(error.message || "");
-      toast(falta ? "Falta crear la tabla en Supabase: ejecuta el SQL de «goals»." : "No se pudo crear la meta");
-      return;
-    }
+    if (!target || target <= 0) { toast("Pon un objetivo válido"); return; }
+    const { data, error } = await sb.from("goals").insert({ user_id: state.user.id, name, target, saved: 0, icon: "🎯" }).select().single();
+    if (error) { toast(goalsTableMissing(error) ? "Falta crear la tabla en Supabase: ejecuta el SQL de «goals»." : "No se pudo crear la meta"); return; }
     state.goals.push(data);
     renderSavings();
   });
 
-  if (goals.length === 0) {
-    $("#goals-target", v).appendChild(emptyState("Aún no hay metas", "Crea una meta con objetivo o un ahorro para ir sumando."));
-    return;
+  const list = $("#metas-list", v);
+  if (metas.length === 0) {
+    list.appendChild(emptyState("Aún no hay metas", "Crea una meta con un objetivo y ve llenándola."));
+  } else {
+    metas.forEach(g => list.appendChild(metaCardEl(g)));
   }
-  const section = (parentSel, label, list) => {
-    if (!list.length) return;
-    const p = $(parentSel, v);
-    const h = el("div", "section-label"); h.textContent = label; p.appendChild(h);
-    list.forEach(g => p.appendChild(goalCardEl(g)));
-  };
-  section("#goals-target", "Metas", goals.filter(g => g.target != null));
-  section("#goals-open", "Ahorro", goals.filter(g => g.target == null));
 }
 
-function goalCardEl(g) {
+function metaCardEl(g) {
   const saved = Number(g.saved || 0);
-  const target = g.target != null ? Number(g.target) : null;
+  const target = Number(g.target);
+  const pct = target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 0;
+  const done = saved >= target;
+  const left = Math.max(0, Math.round((target - saved) * 100) / 100);
   const card = el("div", "card");
-  let progress;
-  if (target != null) {
-    const pct = target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 0;
-    const done = saved >= target;
-    const left = Math.max(0, Math.round((target - saved) * 100) / 100);
-    progress = `
-      <div class="bar" style="margin-top:2px"><i style="width:${pct}%;background:var(--income)"></i></div>
-      <div class="goal-sub"><span>${fmt(saved)} de ${fmt(target)}</span><span>${done ? "¡Conseguido! 🎉" : "faltan " + fmt(left)} · ${pct}%</span></div>`;
-  } else {
-    progress = `<div class="goal-sub"><span>Sin objetivo</span><span>vas acumulando</span></div>`;
-  }
   card.innerHTML = `
     <div class="goal-top">
-      <div class="goal-ic">${g.icon || "🎯"}</div>
+      <div class="goal-ic">🎯</div>
       <div class="goal-name">${escapeHtml(g.name)}</div>
-      <div class="goal-saved num">${fmt(saved)}</div>
+      <div class="goal-saved num">${pct}%</div>
     </div>
-    ${progress}
+    <div class="bar" style="margin-top:2px"><i style="width:${pct}%;background:var(--income)"></i></div>
+    <div class="goal-sub">
+      <span class="num">${fmt(saved)} / ${fmt(target)}</span>
+      <span>${done ? "¡Conseguido! 🎉" : "faltan " + fmt(left)}</span>
+    </div>
     <div class="goal-actions">
       <button class="add" data-act="add">+ Añadir</button>
       <button data-act="sub">− Retirar</button>
@@ -531,14 +548,12 @@ function goalCardEl(g) {
     </div>`;
 
   const change = async (sign) => {
-    const raw = prompt(sign > 0 ? "¿Cuánto añades?" : "¿Cuánto retiras?");
-    if (raw == null) return;
-    const amt = parseFloat(String(raw).replace(",", ".").trim());
-    if (!amt || amt <= 0) { toast("Cantidad no válida"); return; }
-    const newSaved = Math.max(0, Math.round((saved + sign * amt) * 100) / 100);
-    const { error } = await sb.from("goals").update({ saved: newSaved }).eq("id", g.id);
+    const amt = askAmount(sign > 0 ? "¿Cuánto añades?" : "¿Cuánto retiras?");
+    if (amt == null) return;
+    const nv = Math.max(0, Math.round((saved + sign * amt) * 100) / 100);
+    const { error } = await sb.from("goals").update({ saved: nv }).eq("id", g.id);
     if (error) { toast("No se pudo guardar"); return; }
-    g.saved = newSaved;
+    g.saved = nv;
     renderSavings();
   };
   card.querySelector('[data-act="add"]').addEventListener("click", () => change(1));

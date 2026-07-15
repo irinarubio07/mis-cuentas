@@ -24,7 +24,7 @@ Los datos se guardan en **Supabase** y se sincronizan entre dispositivos. Se alo
 - `index.html` — estructura + **todo el CSS** (en `<style>`), pantallas (config, login, app) y
   la barra de pestañas. Carga supabase-js, `config.js` y `app.js` al final.
 - `app.js` — **toda la lógica**: cliente de Supabase, auth, carga de datos, estado en memoria,
-  y el render de las 4 vistas (panel, añadir, movimientos, ajustes).
+  y el render de las 5 vistas (panel, añadir, movimientos, ahorro, ajustes).
 - `config.js` — SOLO la URL del proyecto y la **clave pública (anon)** de Supabase. Se puede
   commitear sin riesgo (la seguridad la da RLS). NUNCA pongas aquí la clave `service_role`/secret.
 - `config.example.js` — plantilla de `config.js`.
@@ -55,12 +55,14 @@ navegadores recojan la versión nueva.
 
 ## Modelo de datos (Supabase / Postgres)
 
-Dos tablas en el esquema `public`, ambas con RLS activado y política "cada usuario solo ve lo suyo"
+Tres tablas en el esquema `public`, todas con RLS activado y política "cada usuario solo ve lo suyo"
 (ver `supabase-setup.sql`):
 
 - `transactions(id uuid, user_id uuid, type text['income'|'expense'], amount numeric(12,2)>0,
   category text, method text['efectivo'|'tarjeta'] default 'efectivo', date date, note text, created_at timestamptz)`
 - `categories(id uuid, user_id uuid, type text['income'|'expense'], name text, icon text)`
+- `goals(id uuid, user_id uuid, name text, target numeric(12,2) NULL, saved numeric(12,2)>=0 default 0,
+  icon text, created_at timestamptz)` — metas de ahorro; `target` NULL = sin objetivo (ir acumulando).
 
 `user_id` referencia `auth.users(id)`. Si cambias el esquema, actualiza también `supabase-setup.sql`
 y da al usuario el SQL de migración a ejecutar en su proyecto (no tienes acceso a su base de datos).

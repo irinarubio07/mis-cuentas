@@ -133,6 +133,18 @@
   .addcat{display:flex;gap:8px;margin-top:10px}
   .addcat input{flex:1;padding:10px 12px;border:1.5px solid var(--hair);border-radius:10px;background:var(--surface)}
   .addcat button{padding:0 16px;border:none;border-radius:10px;background:var(--pine);color:var(--on-pine);font-weight:600}
+  /* ---------- AHORRO / METAS ---------- */
+  .savings-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .section-label{font-size:12px;font-weight:640;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:20px 2px 10px}
+  .goal-top{display:flex;align-items:center;gap:10px}
+  .goal-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:18px;flex:none;background:var(--income-soft)}
+  .goal-name{font-size:15px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .goal-saved{font-size:16px;font-weight:600;flex:none}
+  .goal-sub{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted);margin-top:8px}
+  .goal-actions{display:flex;gap:8px;margin-top:12px}
+  .goal-actions button{flex:1;padding:9px;border:1.5px solid var(--hair);border-radius:10px;background:var(--surface);font-weight:600;font-size:14px;color:var(--ink)}
+  .goal-actions button.add{background:var(--income-soft);border-color:transparent;color:var(--income)}
+  .goal-actions button.del{flex:none;width:44px;color:var(--muted)}
   nav.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--surface);border-top:1px solid var(--hair);display:flex;max-width:520px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom)}
   nav.tabbar button{flex:1;background:none;border:none;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);position:relative}
   nav.tabbar button svg{width:23px;height:23px;color:var(--lilac)} nav.tabbar button span{font-size:10.5px;font-weight:600}
@@ -197,12 +209,14 @@
     <section class="view" id="view-panel"></section>
     <section class="view hidden" id="view-add"></section>
     <section class="view hidden" id="view-list"></section>
+    <section class="view hidden" id="view-savings"></section>
     <section class="view hidden" id="view-settings"></section>
   </main>
   <nav class="tabbar">
     <button data-view="panel" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Panel</span></button>
     <button data-view="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Movimientos</span></button>
     <button data-view="add" class="add"><div class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></button>
+    <button data-view="savings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><span>Ahorro</span></button>
     <button data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Ajustes</span></button>
   </nav>
 </div>

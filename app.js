@@ -10,6 +10,7 @@ const state = {
   user: null,
   tx: [],                                   // movimientos del usuario
   cats: { income: [], expense: [] },        // categorías del usuario
+  goals: [],                                // metas de ahorro del usuario
   currency: localStorage.getItem("mc_currency") || "EUR",  // preferencia local
 };
 let sb = null;          // cliente de Supabase
@@ -146,7 +147,7 @@ $("#logout-btn").addEventListener("click", async () => {
 });
 
 async function onLogout() {
-  state.user = null; state.tx = []; state.cats = { income: [], expense: [] };
+  state.user = null; state.tx = []; state.cats = { income: [], expense: [] }; state.goals = [];
   authMode = "signin"; setupAuthScreen(); showOnly("#auth-screen");
   $("#password").value = "";
 }
@@ -164,13 +165,16 @@ async function onLogin(user) {
 
 async function loadAll() {
   try {
-    const [txRes, catRes] = await Promise.all([
+    const [txRes, catRes, goalsRes] = await Promise.all([
       sb.from("transactions").select("*").order("date", { ascending: false }).order("created_at", { ascending: false }),
       sb.from("categories").select("*"),
+      sb.from("goals").select("*").order("created_at", { ascending: true }),
     ]);
     if (txRes.error) throw txRes.error;
     if (catRes.error) throw catRes.error;
     state.tx = txRes.data || [];
+    // La tabla goals puede no existir aún (si no se ha ejecutado el SQL): si falla, lista vacía.
+    state.goals = goalsRes.error ? [] : (goalsRes.data || []);
     let cats = catRes.data || [];
     if (cats.length === 0) { await seedCategories(); return loadAll(); }
     state.cats = { income: [], expense: [] };
@@ -193,18 +197,19 @@ async function seedCategories() {
 /* ============================================================
    NAVEGACIÓN
    ============================================================ */
-const VIEW_TITLES = { panel: "Panel", list: "Movimientos", add: "Nuevo movimiento", settings: "Ajustes" };
+const VIEW_TITLES = { panel: "Panel", list: "Movimientos", add: "Nuevo movimiento", savings: "Ahorro", settings: "Ajustes" };
 let currentView = "panel";
 
 function switchView(v) {
   currentView = v;
-  ["panel", "add", "list", "settings"].forEach(n => $("#view-" + n).classList.toggle("hidden", n !== v));
+  ["panel", "add", "list", "savings", "settings"].forEach(n => $("#view-" + n).classList.toggle("hidden", n !== v));
   document.querySelectorAll("nav.tabbar button").forEach(b =>
     b.classList.toggle("on", b.dataset.view === v && !b.classList.contains("add")));
   $("#appbar-title").textContent = VIEW_TITLES[v];
   if (v === "panel") renderPanel();
   if (v === "add") renderAdd();
   if (v === "list") renderList();
+  if (v === "savings") renderSavings();
   if (v === "settings") renderSettings();
   window.scrollTo(0, 0);
 }
@@ -432,6 +437,121 @@ function renderList() {
     card.appendChild(txListEl(groups[k], true));
     body.appendChild(card);
   });
+}
+
+/* ============================================================
+   VISTA: AHORRO / METAS
+   ============================================================ */
+function renderSavings() {
+  const v = $("#view-savings");
+  const goals = state.goals;
+  const totalSaved = goals.reduce((s, g) => s + Number(g.saved || 0), 0);
+  const icons = ["🎯", "✈️", "🏠", "🚗", "🎁", "💻", "🏝️", "🎓", "💍", "📱", "🐷", "❤️"];
+  v.innerHTML = `
+    <h1 class="view-title">Ahorro</h1>
+    <p class="view-sub">Tus metas y tu ahorro, aparte del saldo.</p>
+    <div class="card savings-head">
+      <div>
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total ahorrado</div>
+        <div class="num" style="font-size:24px;font-weight:600">${fmt(totalSaved)}</div>
+      </div>
+      <button class="btn" id="new-goal-btn" style="width:auto;padding:12px 16px">＋ Nueva</button>
+    </div>
+    <div class="card hidden" id="new-goal-form">
+      <div class="field"><label for="g-name">Nombre</label><input id="g-name" type="text" placeholder="Ej. Viaje a Japón" /></div>
+      <div class="grid2">
+        <div class="field"><label for="g-target">Objetivo (opcional)</label><input id="g-target" inputmode="decimal" placeholder="Ej. 1200" /></div>
+        <div class="field"><label for="g-icon">Icono</label><select id="g-icon">${icons.map(e => `<option value="${e}">${e}</option>`).join("")}</select></div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Deja el objetivo vacío para ir acumulando sin un precio fijo.</p>
+      <button class="btn" id="g-create">Crear</button>
+    </div>
+    <div id="goals-target"></div>
+    <div id="goals-open"></div>`;
+
+  $("#new-goal-btn", v).addEventListener("click", () => $("#new-goal-form", v).classList.toggle("hidden"));
+
+  $("#g-create", v).addEventListener("click", async () => {
+    const name = $("#g-name", v).value.trim();
+    if (!name) { toast("Ponle un nombre a la meta"); return; }
+    const traw = $("#g-target", v).value.replace(",", ".").trim();
+    const target = traw ? Math.round(parseFloat(traw) * 100) / 100 : null;
+    if (traw && (!target || target <= 0)) { toast("Objetivo no válido"); return; }
+    const icon = $("#g-icon", v).value || "🎯";
+    const { data, error } = await sb.from("goals").insert({ user_id: state.user.id, name, target, saved: 0, icon }).select().single();
+    if (error) {
+      const falta = /goals|relation|does not exist|schema cache/i.test(error.message || "");
+      toast(falta ? "Falta crear la tabla en Supabase: ejecuta el SQL de «goals»." : "No se pudo crear la meta");
+      return;
+    }
+    state.goals.push(data);
+    renderSavings();
+  });
+
+  if (goals.length === 0) {
+    $("#goals-target", v).appendChild(emptyState("Aún no hay metas", "Crea una meta con objetivo o un ahorro para ir sumando."));
+    return;
+  }
+  const section = (parentSel, label, list) => {
+    if (!list.length) return;
+    const p = $(parentSel, v);
+    const h = el("div", "section-label"); h.textContent = label; p.appendChild(h);
+    list.forEach(g => p.appendChild(goalCardEl(g)));
+  };
+  section("#goals-target", "Metas", goals.filter(g => g.target != null));
+  section("#goals-open", "Ahorro", goals.filter(g => g.target == null));
+}
+
+function goalCardEl(g) {
+  const saved = Number(g.saved || 0);
+  const target = g.target != null ? Number(g.target) : null;
+  const card = el("div", "card");
+  let progress;
+  if (target != null) {
+    const pct = target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 0;
+    const done = saved >= target;
+    const left = Math.max(0, Math.round((target - saved) * 100) / 100);
+    progress = `
+      <div class="bar" style="margin-top:2px"><i style="width:${pct}%;background:var(--income)"></i></div>
+      <div class="goal-sub"><span>${fmt(saved)} de ${fmt(target)}</span><span>${done ? "¡Conseguido! 🎉" : "faltan " + fmt(left)} · ${pct}%</span></div>`;
+  } else {
+    progress = `<div class="goal-sub"><span>Sin objetivo</span><span>vas acumulando</span></div>`;
+  }
+  card.innerHTML = `
+    <div class="goal-top">
+      <div class="goal-ic">${g.icon || "🎯"}</div>
+      <div class="goal-name">${escapeHtml(g.name)}</div>
+      <div class="goal-saved num">${fmt(saved)}</div>
+    </div>
+    ${progress}
+    <div class="goal-actions">
+      <button class="add" data-act="add">+ Añadir</button>
+      <button data-act="sub">− Retirar</button>
+      <button class="del" data-act="del" aria-label="Eliminar meta">🗑️</button>
+    </div>`;
+
+  const change = async (sign) => {
+    const raw = prompt(sign > 0 ? "¿Cuánto añades?" : "¿Cuánto retiras?");
+    if (raw == null) return;
+    const amt = parseFloat(String(raw).replace(",", ".").trim());
+    if (!amt || amt <= 0) { toast("Cantidad no válida"); return; }
+    const newSaved = Math.max(0, Math.round((saved + sign * amt) * 100) / 100);
+    const { error } = await sb.from("goals").update({ saved: newSaved }).eq("id", g.id);
+    if (error) { toast("No se pudo guardar"); return; }
+    g.saved = newSaved;
+    renderSavings();
+  };
+  card.querySelector('[data-act="add"]').addEventListener("click", () => change(1));
+  card.querySelector('[data-act="sub"]').addEventListener("click", () => change(-1));
+  card.querySelector('[data-act="del"]').addEventListener("click", async () => {
+    if (!confirm(`¿Eliminar la meta "${g.name}"?`)) return;
+    const { error } = await sb.from("goals").delete().eq("id", g.id);
+    if (error) { toast("No se pudo eliminar"); return; }
+    state.goals = state.goals.filter(x => x.id !== g.id);
+    toast("Meta eliminada");
+    renderSavings();
+  });
+  return card;
 }
 
 /* ============================================================

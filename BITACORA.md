@@ -5,6 +5,27 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-15 — Nueva pestaña «Ahorro» (metas y ahorro) 🎯
+
+**Hecho:**
+- Nueva vista **Ahorro** con su botón en la barra inferior (entre el + y Ajustes; icono diana),
+  a elección de la usuaria.
+- **Metas** con objetivo: barra de progreso (llevas X de Y, faltan Z, %) y estado «¡Conseguido!».
+  **Ahorro** sin objetivo: solo acumula. Arriba, el **total ahorrado**. Es independiente del saldo
+  de movimientos.
+- Cada meta: botones **+ Añadir / − Retirar** (prompt para la cantidad) y borrar; alta con nombre,
+  objetivo opcional e icono (emoji).
+- **Base de datos:** tabla nueva `goals` (name, target NULL, saved, icon) con índice y RLS, añadida
+  a `supabase-setup.sql`. ⚠️ La usuaria debe ejecutar ese SQL en Supabase. La carga tolera que la
+  tabla aún no exista (goals = []), y el alta avisa si falta.
+- Verificado en local con metas de prueba en memoria (sin tocar Supabase): total, secciones, barras
+  de progreso, formulario de alta y navegación correctos; consola sin errores. `CACHE` `v8`→`v9`.
+
+**Siguiente:** (a elegir) presupuestos por categoría, editar movimientos, vista anual, modo oscuro,
+o un gráfico de evolución del ahorro.
+
+---
+
 ## 2026-07-14 — Método de pago (efectivo/tarjeta) en movimientos 💵💳
 
 **Hecho:**

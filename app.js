@@ -466,7 +466,7 @@ function renderSavings() {
     <div class="section-label" style="margin-top:4px">Ahorro</div>
     <div class="card">
       <div class="goal-top">
-        <div class="goal-ic">🐷</div>
+        <div class="goal-ic">🏦</div>
         <div class="goal-name">Ahorro acumulado</div>
         <div class="goal-saved num">${fmt(ahorro)}</div>
       </div>
@@ -494,7 +494,7 @@ function renderSavings() {
       if (error) { toast("No se pudo guardar"); return; }
       pot.saved = nv;
     } else {
-      const { data, error } = await sb.from("goals").insert({ user_id: state.user.id, name: "Ahorro", target: null, saved: amt, icon: "🐷" }).select().single();
+      const { data, error } = await sb.from("goals").insert({ user_id: state.user.id, name: "Ahorro", target: null, saved: amt, icon: "🏦" }).select().single();
       if (error) { toast(goalsTableMissing(error) ? "Falta crear la tabla en Supabase: ejecuta el SQL de «goals»." : "No se pudo guardar"); return; }
       state.goals.push(data);
     }

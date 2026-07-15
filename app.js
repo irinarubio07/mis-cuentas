@@ -501,7 +501,8 @@ function renderSavings() {
         <div class="goal-saved num">${fmt(ahorro)}</div>
       </div>
       <div class="goal-actions">
-        <button class="add" id="ahorro-add">＋ Añadir dinero</button>
+        <button class="add" id="ahorro-add">＋ Añadir</button>
+        <button id="ahorro-sub">− Retirar</button>
       </div>
     </div>
 
@@ -514,22 +515,26 @@ function renderSavings() {
     </div>
     <div id="metas-list"></div>`;
 
-  // Ahorro: un único bote, solo se le va sumando dinero.
-  $("#ahorro-add", v).addEventListener("click", async () => {
-    const amt = askAmount("¿Cuánto añades al ahorro?");
+  // Ahorro: un único bote. Se puede añadir o retirar (p. ej. para una emergencia).
+  const changeAhorro = async (sign) => {
+    const amt = askAmount(sign > 0 ? "¿Cuánto añades al ahorro?" : "¿Cuánto retiras del ahorro?");
     if (amt == null) return;
     if (pot) {
-      const nv = Math.round((Number(pot.saved || 0) + amt) * 100) / 100;
+      const nv = Math.max(0, Math.round((Number(pot.saved || 0) + sign * amt) * 100) / 100);
       const { error } = await sb.from("goals").update({ saved: nv }).eq("id", pot.id);
       if (error) { toast("No se pudo guardar"); return; }
       pot.saved = nv;
-    } else {
+    } else if (sign > 0) {
       const { data, error } = await sb.from("goals").insert({ user_id: state.user.id, name: "Ahorro", target: null, saved: amt, icon: "🏦" }).select().single();
       if (error) { toast(goalsTableMissing(error) ? "Falta crear la tabla en Supabase: ejecuta el SQL de «goals»." : "No se pudo guardar"); return; }
       state.goals.push(data);
+    } else {
+      toast("No tienes ahorro para retirar"); return;
     }
     renderSavings();
-  });
+  };
+  $("#ahorro-add", v).addEventListener("click", () => changeAhorro(1));
+  $("#ahorro-sub", v).addEventListener("click", () => changeAhorro(-1));
 
   // Nueva meta: nombre + objetivo (obligatorio), sin icono.
   $("#new-goal-btn", v).addEventListener("click", () => $("#new-goal-form", v).classList.toggle("hidden"));

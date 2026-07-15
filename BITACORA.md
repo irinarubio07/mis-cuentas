@@ -5,6 +5,15 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-15 — Ahorro: botón «Retirar» (para emergencias) 💸
+
+**Hecho:**
+- El bote de Ahorro, además de **＋ Añadir**, tiene ahora **− Retirar** para sacar una cantidad
+  (p. ej. una emergencia). No baja de 0; si no hay ahorro, avisa. Lógica unificada en `changeAhorro(sign)`.
+- `CACHE` `v13`→`v14`. Verificado en local (dos botones y consola sin errores).
+
+---
+
 ## 2026-07-15 — Robustez: la carga ya no se queda colgada ⏱️
 
 **Hecho (a raíz de un «cargando» infinito de la usuaria):**

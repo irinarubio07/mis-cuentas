@@ -5,6 +5,21 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-15 — Movimientos → pestañas Ingresos y Gastos (Fase 1) 🔀
+
+**Hecho:**
+- La barra inferior separa «Movimientos» en dos pestañas: **Ingresos** y **Gastos** (queda
+  Panel · Ingresos · Gastos · ＋ · Ahorro; iconos de flecha ↓/↑ en círculo).
+- Cada una: filtro **Todo / 💵 Efectivo / 💳 Tarjeta**, **total** del tipo con ese método y la lista
+  agrupada por mes. `renderList` → `renderMovs(type)`; se quita el filtro de tipo (lo da la pestaña).
+- `CACHE` `v14`→`v15`. Verificado en local (Ingresos +1920, Gastos −690; consola sin errores).
+
+**Siguiente (Fase 2, elegido por la usuaria):** dentro de Gastos, marcar cada gasto como
+**fijo/variable a mano** (interruptor en el alta) y los **presupuestos** de gastos fijos por
+categoría (columna `budget` → SQL, con barra de progreso mensual).
+
+---
+
 ## 2026-07-15 — Ahorro: botón «Retirar» (para emergencias) 💸
 
 **Hecho:**

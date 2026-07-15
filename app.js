@@ -231,13 +231,14 @@ let currentView = "panel";
 
 function switchView(v) {
   currentView = v;
-  ["panel", "add", "list", "savings", "settings"].forEach(n => $("#view-" + n).classList.toggle("hidden", n !== v));
+  ["panel", "add", "income", "expense", "savings", "settings"].forEach(n => $("#view-" + n).classList.toggle("hidden", n !== v));
   document.querySelectorAll("nav.tabbar button").forEach(b =>
     b.classList.toggle("on", b.dataset.view === v && !b.classList.contains("add")));
   $("#settings-btn").classList.toggle("on", v === "settings");
   if (v === "panel") renderPanel();
   if (v === "add") renderAdd();
-  if (v === "list") renderList();
+  if (v === "income") renderMovs("income");
+  if (v === "expense") renderMovs("expense");
   if (v === "savings") renderSavings();
   if (v === "settings") renderSettings();
   window.scrollTo(0, 0);
@@ -410,60 +411,46 @@ function renderAdd() {
 /* ============================================================
    VISTA: MOVIMIENTOS
    ============================================================ */
-let listFilter = "all";
 let listMethod = "all";
-function renderList() {
-  const v = $("#view-list");
-  const tx = state.tx;
+function renderMovs(type) {
+  const v = $("#view-" + type);            // #view-income o #view-expense
+  const title = type === "income" ? "Ingresos" : "Gastos";
+  const color = type === "income" ? "var(--income)" : "var(--expense)";
+  const sign = type === "income" ? "+" : "−";
+  const all = state.tx.filter(t => t.type === type);
   v.innerHTML = `
-    <h1 class="view-title">Movimientos</h1>
-    <p class="view-sub">${tx.length} ${tx.length === 1 ? "registro" : "registros"} en total.</p>
-    <div class="chips" id="list-filters">
-      <button class="chip ${listFilter === "all" ? "on" : ""}" data-f="all">Todos</button>
-      <button class="chip ${listFilter === "income" ? "on" : ""}" data-f="income">Ingresos</button>
-      <button class="chip ${listFilter === "expense" ? "on" : ""}" data-f="expense">Gastos</button>
-    </div>
+    <h1 class="view-title">${title}</h1>
+    <p class="view-sub">${all.length} ${all.length === 1 ? "registro" : "registros"}.</p>
     <div class="chips" id="method-filters">
       <button class="chip ${listMethod === "all" ? "on" : ""}" data-m="all">Todo</button>
       <button class="chip ${listMethod === "efectivo" ? "on" : ""}" data-m="efectivo">💵 Efectivo</button>
       <button class="chip ${listMethod === "tarjeta" ? "on" : ""}" data-m="tarjeta">💳 Tarjeta</button>
     </div>
-    <div id="list-summary"></div>
-    <div id="list-body"></div>`;
-  v.querySelectorAll("#list-filters .chip").forEach(c => c.addEventListener("click", () => { listFilter = c.dataset.f; renderList(); }));
-  v.querySelectorAll("#method-filters .chip").forEach(c => c.addEventListener("click", () => { listMethod = c.dataset.m; renderList(); }));
+    <div id="movs-summary"></div>
+    <div id="movs-body"></div>`;
+  v.querySelectorAll("#method-filters .chip").forEach(c => c.addEventListener("click", () => { listMethod = c.dataset.m; renderMovs(type); }));
 
-  const filtered = tx.filter(t =>
-    (listFilter === "all" || t.type === listFilter) &&
-    (listMethod === "all" || txMethod(t) === listMethod));
+  const filtered = all.filter(t => listMethod === "all" || txMethod(t) === listMethod);
 
-  // Resumen del filtro activo: total en efectivo, en tarjeta, o combinado ("Todo").
-  if (tx.length) {
-    const inTot = filtered.filter(t => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
-    const outTot = filtered.filter(t => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+  // Resumen: total de este tipo con el método elegido.
+  if (all.length) {
+    const total = filtered.reduce((s, t) => s + Number(t.amount), 0);
     const methodLabel = listMethod === "efectivo" ? "💵 Efectivo" : listMethod === "tarjeta" ? "💳 Tarjeta" : "Todo";
-    $("#list-summary", v).innerHTML = `
+    $("#movs-summary", v).innerHTML = `
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <div>
-          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Saldo · ${methodLabel}</div>
-          <div class="num" style="font-size:24px;font-weight:600">${fmt(inTot - outTot)}</div>
-        </div>
-        <div style="text-align:right;font-size:13px;line-height:1.5">
-          <div class="num" style="color:var(--income);font-weight:600">+${fmt(inTot).replace(/^[-+−]?/, "")}</div>
-          <div class="num" style="color:var(--expense);font-weight:600">−${fmt(outTot).replace(/^[-+−]?/, "")}</div>
-        </div>
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Total · ${methodLabel}</div>
+        <div class="num" style="font-size:22px;font-weight:600;color:${color}">${sign}${fmt(total).replace(/^[-+−]?/, "")}</div>
       </div>`;
   }
 
-  const body = $("#list-body", v);
+  const body = $("#movs-body", v);
   if (filtered.length === 0) { body.appendChild(emptyState("Nada por aquí", "No hay movimientos con este filtro.")); return; }
   const groups = {};
   filtered.forEach(t => { (groups[monthKey(t.date)] = groups[monthKey(t.date)] || []).push(t); });
   Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(k => {
     const card = el("div", "card");
-    const inSum = groups[k].filter(t => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
-    const outSum = groups[k].filter(t => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
-    card.innerHTML = `<h2>${cap(monthLabel(k))} · <span style="color:var(--income)">${fmt(inSum)}</span> / <span style="color:var(--expense)">${fmt(outSum)}</span></h2>`;
+    const sum = groups[k].reduce((s, t) => s + Number(t.amount), 0);
+    card.innerHTML = `<h2>${cap(monthLabel(k))} · <span style="color:${color}">${fmt(sum)}</span></h2>`;
     card.appendChild(txListEl(groups[k], true));
     body.appendChild(card);
   });

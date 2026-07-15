@@ -197,7 +197,6 @@ async function seedCategories() {
 /* ============================================================
    NAVEGACIÓN
    ============================================================ */
-const VIEW_TITLES = { panel: "Panel", list: "Movimientos", add: "Nuevo movimiento", savings: "Ahorro", settings: "Ajustes" };
 let currentView = "panel";
 
 function switchView(v) {
@@ -205,7 +204,7 @@ function switchView(v) {
   ["panel", "add", "list", "savings", "settings"].forEach(n => $("#view-" + n).classList.toggle("hidden", n !== v));
   document.querySelectorAll("nav.tabbar button").forEach(b =>
     b.classList.toggle("on", b.dataset.view === v && !b.classList.contains("add")));
-  $("#appbar-title").textContent = VIEW_TITLES[v];
+  $("#settings-btn").classList.toggle("on", v === "settings");
   if (v === "panel") renderPanel();
   if (v === "add") renderAdd();
   if (v === "list") renderList();
@@ -215,6 +214,7 @@ function switchView(v) {
 }
 document.querySelectorAll("nav.tabbar button").forEach(b =>
   b.addEventListener("click", () => switchView(b.dataset.view)));
+$("#settings-btn").addEventListener("click", () => switchView("settings"));
 
 /* ============================================================
    VISTA: PANEL

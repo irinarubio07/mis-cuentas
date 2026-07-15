@@ -5,6 +5,18 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-15 — Ajustes al icono superior + barra inferior más limpia ⚙️
+
+**Hecho (según feedback):**
+- Quitados los **títulos** de la barra superior (franja azul); ya no muestra «Panel»/«Movimientos»/etc.
+- El icono de **Ajustes** (engranaje) pasa a la **esquina superior izquierda**, del mismo tamaño que
+  el botón de salir (clase compartida `.abtn`, 36px). Abre la vista Ajustes y se resalta al estar activo.
+- Quitado el botón **Ajustes** de la barra inferior, que queda con 4: Panel · Movimientos · ＋ · Ahorro.
+- Limpieza: eliminados `VIEW_TITLES` y la asignación a `#appbar-title` (ya no existe).
+- Verificado en local (DOM + captura); consola sin errores. `CACHE` `v11`→`v12`.
+
+---
+
 ## 2026-07-15 — Ahorro: bote único + metas afinadas 🐷
 
 **Hecho (ajuste sobre la pestaña Ahorro, según feedback):**

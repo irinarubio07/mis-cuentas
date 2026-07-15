@@ -5,6 +5,17 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-15 — Movimientos: un solo botón con selector Ingresos/Gastos ↩️
+
+**Hecho (revierte parte de la Fase 1, a petición de la usuaria):**
+- La barra vuelve a tener **un solo botón «Movimientos»** (Panel · Movimientos · ＋ · Ahorro).
+- Dentro, un **toggle Ingresos/Gastos** (componente `.toggle`, verde/coral según el activo) para
+  elegir, más el filtro **Todo / 💵 Efectivo / 💳 Tarjeta** y el **total** del tipo elegido.
+- `renderMovs(type)` → `renderMovs()` con estado `movsType`; una sola vista `#view-movs`.
+- `CACHE` `v15`→`v16`. Verificado en local (el toggle cambia total y lista; consola sin errores).
+
+---
+
 ## 2026-07-15 — Movimientos → pestañas Ingresos y Gastos (Fase 1) 🔀
 
 **Hecho:**

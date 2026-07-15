@@ -159,30 +159,60 @@ async function onLogin(user) {
   state.user = user;
   showOnly("#app");
   $("#view-panel").innerHTML = `<div class="spinner"></div>`;
-  await loadAll();
-  switchView("panel");
+  if (await loadAll()) switchView("panel");
+  else showLoadError();
 }
 
-async function loadAll() {
+// Corre una promesa con tiempo límite: si tarda demasiado, rechaza (evita "cargando" infinito).
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+  ]);
+}
+
+// Devuelve true si cargó bien, false si falló. NUNCA se queda colgada.
+async function loadAll(seeded) {
   try {
-    const [txRes, catRes, goalsRes] = await Promise.all([
+    const [txRes, catRes, goalsRes] = await withTimeout(Promise.all([
       sb.from("transactions").select("*").order("date", { ascending: false }).order("created_at", { ascending: false }),
       sb.from("categories").select("*"),
       sb.from("goals").select("*").order("created_at", { ascending: true }),
-    ]);
+    ]), 15000);
     if (txRes.error) throw txRes.error;
     if (catRes.error) throw catRes.error;
     state.tx = txRes.data || [];
     // La tabla goals puede no existir aún (si no se ha ejecutado el SQL): si falla, lista vacía.
     state.goals = goalsRes.error ? [] : (goalsRes.data || []);
     let cats = catRes.data || [];
-    if (cats.length === 0) { await seedCategories(); return loadAll(); }
+    // Sembrar las categorías por defecto SOLO una vez (evita bucle infinito si algo falla).
+    if (cats.length === 0 && !seeded) { await seedCategories(); return loadAll(true); }
     state.cats = { income: [], expense: [] };
     cats.forEach(c => state.cats[c.type] && state.cats[c.type].push({ id: c.id, name: c.name, icon: c.icon }));
+    return true;
   } catch (err) {
-    toast("Error al cargar los datos");
     console.error(err);
+    return false;
   }
+}
+
+// Pantalla de "no se pudo cargar" con botón para reintentar (en vez de spinner eterno).
+function showLoadError() {
+  ["panel", "add", "list", "savings", "settings"].forEach(n => $("#view-" + n).classList.toggle("hidden", n !== "panel"));
+  const v = $("#view-panel");
+  v.innerHTML = "";
+  const box = el("div", "empty");
+  box.innerHTML = `<div class="big">📡</div><p><strong>No se pudieron cargar los datos</strong><br>Revisa tu conexión e inténtalo de nuevo.</p>`;
+  const btn = el("button", "btn");
+  btn.textContent = "Reintentar";
+  btn.style.cssText = "max-width:220px;margin:18px auto 0;display:block";
+  btn.addEventListener("click", async () => {
+    v.innerHTML = `<div class="spinner"></div>`;
+    if (await loadAll()) switchView("panel");
+    else showLoadError();
+  });
+  v.appendChild(box);
+  v.appendChild(btn);
 }
 
 async function seedCategories() {

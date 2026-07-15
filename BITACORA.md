@@ -5,6 +5,23 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-15 — Robustez: la carga ya no se queda colgada ⏱️
+
+**Hecho (a raíz de un «cargando» infinito de la usuaria):**
+- `loadAll` tenía dos fragilidades: (1) si las categorías volvían vacías se llamaba a sí misma en
+  bucle (`return loadAll()`), y (2) si una petición a Supabase se colgaba, el spinner del Panel se
+  quedaba para siempre.
+- Arreglado: `loadAll` ahora tiene **tiempo límite** (`withTimeout`, 15 s), **siembra las categorías
+  como máximo una vez** (guard `seeded`) y **devuelve true/false**.
+- Nueva `showLoadError()`: pantalla 📡 «No se pudieron cargar los datos» con botón **Reintentar**,
+  en vez de spinner eterno. `onLogin` la muestra si la carga falla.
+- Causa del incidente: transitoria (una petición se colgó por la conexión; Supabase respondía bien
+  y rápido). De paso se confirmó que la tabla `goals` no existía → la usuaria ejecutó el SQL y
+  Ahorro ya guarda.
+- Verificado en local (arranque sin errores; pantalla de reintento correcta). `CACHE` `v12`→`v13`.
+
+---
+
 ## 2026-07-15 — Ajustes al icono superior + barra inferior más limpia ⚙️
 
 **Hecho (según feedback):**

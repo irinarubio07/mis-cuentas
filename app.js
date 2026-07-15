@@ -14,7 +14,8 @@ const state = {
   currency: localStorage.getItem("mc_currency") || "EUR",  // preferencia local
 };
 let sb = null;          // cliente de Supabase
-let authMode = "signin"; // signin | signup
+let authMode = "signin"; // signin | signup | recover-request | recover-verify
+let recoverEmail = "";   // correo recordado entre los dos pasos de recuperación
 
 /* ---------- utilidades ---------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -87,19 +88,38 @@ async function boot() {
 /* ============================================================
    PANTALLA DE ACCESO
    ============================================================ */
+function goMode(m) { authMode = m; $("#auth-msg").textContent = ""; setupAuthScreen(); }
 function setupAuthScreen() {
-  const signin = authMode === "signin";
-  $("#auth-title").textContent = signin ? "Inicia sesión" : "Crea tu cuenta";
-  $("#auth-sub").textContent = signin
-    ? "Entra para ver tus cuentas en cualquier ordenador."
-    : "Regístrate una vez; luego entra desde donde quieras.";
-  $("#auth-btn").textContent = signin ? "Entrar" : "Crear cuenta";
-  $("#password").setAttribute("autocomplete", signin ? "current-password" : "new-password");
-  $("#auth-switch").innerHTML = signin
-    ? `¿No tienes cuenta? <a id="to-signup">Crea una</a>`
-    : `¿Ya tienes cuenta? <a id="to-signin">Inicia sesión</a>`;
-  const other = signin ? "#to-signup" : "#to-signin";
-  $(other).addEventListener("click", () => { authMode = signin ? "signup" : "signin"; $("#auth-msg").textContent = ""; setupAuthScreen(); });
+  const mode = authMode;
+  const titles = { signin: "Inicia sesión", signup: "Crea tu cuenta", "recover-request": "Recuperar contraseña", "recover-verify": "Nueva contraseña" };
+  const subs = {
+    signin: "Entra para ver tus cuentas en cualquier ordenador.",
+    signup: "Regístrate una vez; luego entra desde donde quieras.",
+    "recover-request": "Escribe tu correo y te enviaremos un código de 6 dígitos.",
+    "recover-verify": "Escribe el código que te ha llegado por correo y tu nueva contraseña.",
+  };
+  const btns = { signin: "Entrar", signup: "Crear cuenta", "recover-request": "Enviar código", "recover-verify": "Guardar contraseña" };
+  $("#auth-title").textContent = titles[mode];
+  $("#auth-sub").textContent = subs[mode];
+  $("#auth-btn").textContent = btns[mode];
+  // Campos visibles según el paso
+  $("#email-field").classList.toggle("hidden", mode === "recover-verify");
+  $("#code-field").classList.toggle("hidden", mode !== "recover-verify");
+  $("#password-field").classList.toggle("hidden", mode === "recover-request");
+  $("#password-label").textContent = mode === "recover-verify" ? "Nueva contraseña" : "Contraseña";
+  $("#password").setAttribute("autocomplete", mode === "signin" ? "current-password" : "new-password");
+  // Enlace "¿Has olvidado tu contraseña?" (solo al iniciar sesión, debajo del recuadro de contraseña)
+  $("#forgot").innerHTML = mode === "signin"
+    ? `<a id="to-recover" style="color:var(--on-pine);font-weight:600;cursor:pointer;text-decoration:none">¿Has olvidado tu contraseña?</a>`
+    : "";
+  const rec = $("#to-recover"); if (rec) rec.addEventListener("click", () => goMode("recover-request"));
+  // Enlace de abajo
+  $("#auth-switch").innerHTML =
+    mode === "signin" ? `¿No tienes cuenta? <a id="to-signup">Crea una</a>` :
+    mode === "signup" ? `¿Ya tienes cuenta? <a id="to-signin">Inicia sesión</a>` :
+    `<a id="to-signin">Volver a iniciar sesión</a>`;
+  const su = $("#to-signup"); if (su) su.addEventListener("click", () => goMode("signup"));
+  const si = $("#to-signin"); if (si) si.addEventListener("click", () => goMode("signin"));
 }
 
 $("#auth-form").addEventListener("submit", async (e) => {
@@ -107,22 +127,44 @@ $("#auth-form").addEventListener("submit", async (e) => {
   const msg = $("#auth-msg"); msg.className = "msg";
   const email = $("#email").value.trim();
   const password = $("#password").value;
+  const code = $("#code").value.trim();
   const btn = $("#auth-btn");
-  if (!email || password.length < 6) { msg.textContent = "Introduce tu correo y una contraseña de al menos 6 caracteres."; msg.className = "msg err"; return; }
-  btn.disabled = true; btn.textContent = "Un momento…";
+  const mode = authMode;
   try {
-    if (authMode === "signup") {
-      const { data, error } = await sb.auth.signUp({ email, password });
-      if (error) throw error;
-      if (!data.session) {
-        msg.textContent = "Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión.";
-        msg.className = "msg ok";
-        authMode = "signin"; setupAuthScreen();
+    if (mode === "signin" || mode === "signup") {
+      if (!email || password.length < 6) { msg.textContent = "Introduce tu correo y una contraseña de al menos 6 caracteres."; msg.className = "msg err"; return; }
+      btn.disabled = true; btn.textContent = "Un momento…";
+      if (mode === "signup") {
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) throw error;
+        if (!data.session) {
+          msg.textContent = "Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión.";
+          msg.className = "msg ok";
+          authMode = "signin";
+        }
+        // Si hay sesión (confirmación desactivada), onAuthStateChange se encarga de entrar.
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       }
-      // Si hay sesión (confirmación desactivada), onAuthStateChange se encarga de entrar.
-    } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+    } else if (mode === "recover-request") {
+      if (!email) { msg.textContent = "Escribe tu correo."; msg.className = "msg err"; return; }
+      btn.disabled = true; btn.textContent = "Enviando…";
+      const { error } = await sb.auth.resetPasswordForEmail(email);
       if (error) throw error;
+      recoverEmail = email;
+      authMode = "recover-verify";
+      msg.textContent = "Te hemos enviado un código a " + email + ". Míralo en tu correo (revisa también spam).";
+      msg.className = "msg ok";
+    } else if (mode === "recover-verify") {
+      if (code.length < 6) { msg.textContent = "Escribe el código de 6 dígitos del correo."; msg.className = "msg err"; return; }
+      if (password.length < 6) { msg.textContent = "La nueva contraseña debe tener al menos 6 caracteres."; msg.className = "msg err"; return; }
+      btn.disabled = true; btn.textContent = "Guardando…";
+      const { error: vErr } = await sb.auth.verifyOtp({ email: recoverEmail, token: code, type: "recovery" });
+      if (vErr) throw vErr;
+      const { error: uErr } = await sb.auth.updateUser({ password });
+      if (uErr) throw uErr;
+      // verifyOtp crea la sesión → onAuthStateChange entra en la app con la contraseña ya cambiada.
     }
   } catch (err) {
     msg.textContent = traducirError(err.message);
@@ -138,6 +180,8 @@ function traducirError(m) {
   if (m.includes("invalid login")) return "Correo o contraseña incorrectos.";
   if (m.includes("already registered")) return "Ese correo ya está registrado. Inicia sesión.";
   if (m.includes("email not confirmed")) return "Confirma tu correo antes de entrar (revisa tu bandeja).";
+  if (m.includes("expired") || m.includes("otp") || (m.includes("token") && m.includes("invalid"))) return "El código no es válido o ha caducado. Pide uno nuevo.";
+  if (m.includes("for security purposes") || m.includes("rate limit") || m.includes("too many")) return "Demasiados intentos. Espera un minuto e inténtalo de nuevo.";
   if (m.includes("network") || m.includes("fetch")) return "Sin conexión con el servidor. Revisa tu internet.";
   return "No se ha podido completar. " + (m ? "(" + m + ")" : "");
 }

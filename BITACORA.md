@@ -5,6 +5,25 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-15 — Recuperar contraseña con código (OTP) 🔑
+
+**Hecho:**
+- Enlace **«¿Has olvidado tu contraseña?»** bajo el campo de contraseña (solo en «Iniciar sesión»).
+- Flujo en 2 pasos en la misma pantalla de acceso (nuevos modos `recover-request` / `recover-verify`):
+  1. Correo → `resetPasswordForEmail(email)` → envía un código de 6 dígitos.
+  2. Código + nueva contraseña → `verifyOtp({type:'recovery'})` + `updateUser({password})` → entra con la nueva.
+- Los campos (correo / código / contraseña) se muestran u ocultan según el paso; errores traducidos
+  (código caducado, demasiados intentos).
+- **Multiusuario ya existía** (registro con `signUp` + «Crea una»); confirmado, no requería cambios.
+- ⚠️ Requiere en Supabase: editar la plantilla de correo **«Reset Password»** para incluir `{{ .Token }}`
+  (si no, el correo no lleva el código).
+- `CACHE` y `app.js?v` `v17`→`v18`. Verificado en local (las 3 pantallas; consola sin errores). El envío
+  real del correo depende de la plantilla en Supabase.
+
+**Siguiente:** (pendiente de antes) Fase 2B — presupuestos por categoría en gastos fijos.
+
+---
+
 ## 2026-07-15 — Fase 2A: gastos fijos/variables (marcado manual) 🏷️
 
 **Hecho:**

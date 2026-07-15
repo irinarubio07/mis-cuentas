@@ -183,14 +183,19 @@
   <h1 id="auth-title">Inicia sesión</h1>
   <p class="sub" id="auth-sub">Entra para ver tus cuentas en cualquier ordenador.</p>
   <form id="auth-form" autocomplete="on">
-    <div class="field">
+    <div class="field" id="email-field">
       <label for="email">Correo electrónico</label>
-      <input id="email" type="email" autocomplete="email" placeholder="tu@correo.com" required />
+      <input id="email" type="email" autocomplete="email" placeholder="tu@correo.com" />
     </div>
-    <div class="field">
-      <label for="password">Contraseña</label>
-      <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+    <div class="field hidden" id="code-field">
+      <label for="code">Código</label>
+      <input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" />
     </div>
+    <div class="field" id="password-field">
+      <label for="password" id="password-label">Contraseña</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
+    </div>
+    <div id="forgot" style="text-align:right;margin:-4px 0 14px;font-size:13px"></div>
     <button class="btn" type="submit" id="auth-btn">Entrar</button>
     <div class="msg" id="auth-msg"></div>
   </form>
@@ -228,6 +233,6 @@
 <!-- Tu configuración (edítala) -->
 <script src="config.js"></script>
 <!-- Lógica de la app -->
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>

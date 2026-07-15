@@ -231,14 +231,13 @@ let currentView = "panel";
 
 function switchView(v) {
   currentView = v;
-  ["panel", "add", "income", "expense", "savings", "settings"].forEach(n => $("#view-" + n).classList.toggle("hidden", n !== v));
+  ["panel", "add", "movs", "savings", "settings"].forEach(n => $("#view-" + n).classList.toggle("hidden", n !== v));
   document.querySelectorAll("nav.tabbar button").forEach(b =>
     b.classList.toggle("on", b.dataset.view === v && !b.classList.contains("add")));
   $("#settings-btn").classList.toggle("on", v === "settings");
   if (v === "panel") renderPanel();
   if (v === "add") renderAdd();
-  if (v === "income") renderMovs("income");
-  if (v === "expense") renderMovs("expense");
+  if (v === "movs") renderMovs();
   if (v === "savings") renderSavings();
   if (v === "settings") renderSettings();
   window.scrollTo(0, 0);
@@ -412,15 +411,19 @@ function renderAdd() {
    VISTA: MOVIMIENTOS
    ============================================================ */
 let listMethod = "all";
-function renderMovs(type) {
-  const v = $("#view-" + type);            // #view-income o #view-expense
-  const title = type === "income" ? "Ingresos" : "Gastos";
+let movsType = "income";   // pestaña seleccionada dentro de Movimientos (Ingresos/Gastos)
+function renderMovs() {
+  const v = $("#view-movs");
+  const type = movsType;
   const color = type === "income" ? "var(--income)" : "var(--expense)";
   const sign = type === "income" ? "+" : "−";
   const all = state.tx.filter(t => t.type === type);
   v.innerHTML = `
-    <h1 class="view-title">${title}</h1>
-    <p class="view-sub">${all.length} ${all.length === 1 ? "registro" : "registros"}.</p>
+    <h1 class="view-title">Movimientos</h1>
+    <div class="toggle" id="movs-type">
+      <button type="button" data-t="income">Ingresos</button>
+      <button type="button" data-t="expense">Gastos</button>
+    </div>
     <div class="chips" id="method-filters">
       <button class="chip ${listMethod === "all" ? "on" : ""}" data-m="all">Todo</button>
       <button class="chip ${listMethod === "efectivo" ? "on" : ""}" data-m="efectivo">💵 Efectivo</button>
@@ -428,7 +431,11 @@ function renderMovs(type) {
     </div>
     <div id="movs-summary"></div>
     <div id="movs-body"></div>`;
-  v.querySelectorAll("#method-filters .chip").forEach(c => c.addEventListener("click", () => { listMethod = c.dataset.m; renderMovs(type); }));
+  v.querySelectorAll("#movs-type button").forEach(b => {
+    b.classList.toggle("on", b.dataset.t === type);
+    b.addEventListener("click", () => { movsType = b.dataset.t; renderMovs(); });
+  });
+  v.querySelectorAll("#method-filters .chip").forEach(c => c.addEventListener("click", () => { listMethod = c.dataset.m; renderMovs(); }));
 
   const filtered = all.filter(t => listMethod === "all" || txMethod(t) === listMethod);
 

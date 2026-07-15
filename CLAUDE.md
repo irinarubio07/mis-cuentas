@@ -50,8 +50,9 @@ un `config.js` válido con las claves de un proyecto Supabase real.
 
 Es GitHub Pages: haz commit y push a `main`. Pages se reconstruye solo en ~1 minuto.
 Si cambias archivos que cachea el service worker (`index.html`, `app.js`, `sw.js`, iconos…),
-**sube la versión** de la constante `CACHE` en `sw.js` (`...-v1` → `...-v2`) para que los
-navegadores recojan la versión nueva.
+**sube la versión** en DOS sitios a la vez y con el mismo número: la constante `CACHE` en `sw.js`
+(`...-v16` → `...-v17`) y el `?v=` de `app.js` en `index.html` (`app.js?v=16` → `app.js?v=17`).
+Así los navegadores recogen la versión nueva al instante (el `?v=` evita la caché HTTP de `app.js`).
 
 ## Modelo de datos (Supabase / Postgres)
 

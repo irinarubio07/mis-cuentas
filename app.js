@@ -337,6 +337,7 @@ function buildCategoryCard(mTx) {
    ============================================================ */
 let addType = "expense";
 let addMethod = "efectivo";
+let addFixed = false;   // gasto fijo (true) o variable (false)
 function renderAdd() {
   const v = $("#view-add");
   v.innerHTML = `
@@ -357,6 +358,13 @@ function renderAdd() {
         <button type="button" class="chip" data-m="tarjeta">💳 Tarjeta</button>
       </div>
     </div>
+    <div class="field" id="fixed-field">
+      <label>Tipo de gasto</label>
+      <div class="chips" id="fixed-chips" style="margin-bottom:0">
+        <button type="button" class="chip" data-x="variable">Variable</button>
+        <button type="button" class="chip" data-x="fijo">Fijo</button>
+      </div>
+    </div>
     <div class="field"><label for="f-cat">Categoría</label><select id="f-cat"></select></div>
     <div class="grid2">
       <div class="field"><label for="f-date">Fecha</label><input id="f-date" type="date" value="${todayISO()}" /></div>
@@ -369,6 +377,7 @@ function renderAdd() {
   const setType = (t) => {
     addType = t;
     v.querySelectorAll("#type-toggle button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+    $("#fixed-field", v).classList.toggle("hidden", t !== "expense");   // fijo/variable solo para gastos
     fillCats();
   };
   v.querySelectorAll("#type-toggle button").forEach(b => b.addEventListener("click", () => setType(b.dataset.t)));
@@ -381,6 +390,13 @@ function renderAdd() {
   v.querySelectorAll("#method-chips .chip").forEach(c => c.addEventListener("click", () => setMethod(c.dataset.m)));
   setMethod(addMethod);
 
+  const setFixed = (x) => {
+    addFixed = (x === "fijo");
+    v.querySelectorAll("#fixed-chips .chip").forEach(c => c.classList.toggle("on", c.dataset.x === x));
+  };
+  v.querySelectorAll("#fixed-chips .chip").forEach(c => c.addEventListener("click", () => setFixed(c.dataset.x)));
+  setFixed(addFixed ? "fijo" : "variable");
+
   $("#f-save", v).addEventListener("click", async () => {
     const amount = parseFloat($("#f-amount", v).value.replace(",", ".").trim());
     if (!amount || amount <= 0) { toast("Introduce un importe válido"); $("#f-amount", v).focus(); return; }
@@ -391,13 +407,14 @@ function renderAdd() {
       amount: Math.round(amount * 100) / 100,
       category: $("#f-cat", v).value,
       method: addMethod,
+      fixed: addType === "expense" ? addFixed : false,
       date: $("#f-date", v).value || todayISO(),
       note: $("#f-note", v).value.trim(),
     };
     const { data, error } = await sb.from("transactions").insert(row).select().single();
     if (error) {
-      const faltaColumna = /method|column|schema cache/i.test(error.message || "");
-      toast(faltaColumna ? "Falta actualizar Supabase: ejecuta el SQL de la columna «method»." : "No se pudo guardar");
+      const faltaColumna = /method|fixed|column|schema cache/i.test(error.message || "");
+      toast(faltaColumna ? "Falta actualizar Supabase: ejecuta el SQL (columnas «method» y «fixed»)." : "No se pudo guardar");
       btn.disabled = false; btn.textContent = "Guardar movimiento"; return;
     }
     state.tx.unshift(data);
@@ -452,14 +469,29 @@ function renderMovs() {
 
   const body = $("#movs-body", v);
   if (filtered.length === 0) { body.appendChild(emptyState("Nada por aquí", "No hay movimientos con este filtro.")); return; }
+  if (type === "expense") {
+    // Dos apartados: gastos fijos y gastos variables.
+    const seccion = (label, list) => {
+      const h = el("div", "section-label"); h.textContent = label; body.appendChild(h);
+      if (list.length) renderMonthGroups(body, list, color);
+      else { const p = el("p"); p.style.cssText = "color:var(--muted);font-size:13px;margin:0 2px 10px"; p.textContent = "Nada aquí todavía."; body.appendChild(p); }
+    };
+    seccion("Gastos fijos", filtered.filter(t => t.fixed));
+    seccion("Gastos variables", filtered.filter(t => !t.fixed));
+  } else {
+    renderMonthGroups(body, filtered, color);
+  }
+}
+
+function renderMonthGroups(container, list, color) {
   const groups = {};
-  filtered.forEach(t => { (groups[monthKey(t.date)] = groups[monthKey(t.date)] || []).push(t); });
+  list.forEach(t => { (groups[monthKey(t.date)] = groups[monthKey(t.date)] || []).push(t); });
   Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(k => {
     const card = el("div", "card");
     const sum = groups[k].reduce((s, t) => s + Number(t.amount), 0);
     card.innerHTML = `<h2>${cap(monthLabel(k))} · <span style="color:${color}">${fmt(sum)}</span></h2>`;
     card.appendChild(txListEl(groups[k], true));
-    body.appendChild(card);
+    container.appendChild(card);
   });
 }
 

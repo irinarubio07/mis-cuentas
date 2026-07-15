@@ -5,6 +5,24 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-15 — Fase 2A: gastos fijos/variables (marcado manual) 🏷️
+
+**Hecho:**
+- Nueva columna `transactions.fixed` (bool, default false). ⚠️ La usuaria debe ejecutar el SQL.
+- En el alta, cuando el tipo es **Gasto**, un interruptor **Variable / Fijo** (se oculta en Ingreso);
+  el insert guarda `fixed`. Aviso por toast si falta la columna.
+- En **Movimientos → Gastos**, dos apartados: **Gastos fijos** y **Gastos variables**, cada uno con
+  sus movimientos por mes y subtotal (helper `renderMonthGroups`). Los antiguos sin `fixed` = variables.
+- **Cache-busting:** `app.js?v=17` en `index.html` (se sube junto al `CACHE` del SW) para que los
+  cambios se vean al instante sin depender solo del service worker.
+- `CACHE` `v16`→`v17`. Verificado en local (fijos 210 / variables 65; el interruptor solo en Gasto;
+  consola sin errores).
+
+**Siguiente (Fase 2B):** presupuestos por categoría (límite mensual + barra de progreso) en el
+apartado de gastos fijos, gestionados desde Ajustes.
+
+---
+
 ## 2026-07-15 — Movimientos: un solo botón con selector Ingresos/Gastos ↩️
 
 **Hecho (revierte parte de la Fase 1, a petición de la usuaria):**

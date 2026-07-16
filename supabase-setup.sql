@@ -74,4 +74,25 @@ create policy "own goals" on public.goals
   using      (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+-- 6) Gastos fijos recurrentes (recibos mensuales) + enlace del pago con su gasto fijo.
+create table if not exists public.fixed_expenses (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  name       text not null,
+  amount     numeric(12,2) not null check (amount > 0),
+  created_at timestamptz not null default now()
+);
+create index if not exists fixed_expenses_user_idx on public.fixed_expenses (user_id, created_at);
+alter table public.fixed_expenses enable row level security;
+drop policy if exists "own fixed_expenses" on public.fixed_expenses;
+create policy "own fixed_expenses" on public.fixed_expenses
+  for all
+  to authenticated
+  using      (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- El pago de un gasto fijo es una transacción enlazada por fixed_expense_id.
+alter table public.transactions
+  add column if not exists fixed_expense_id uuid references public.fixed_expenses (id) on delete set null;
+
 -- Listo. Tus datos quedan aislados por usuario gracias a RLS.

@@ -11,6 +11,7 @@ const state = {
   tx: [],                                   // movimientos del usuario
   cats: { income: [], expense: [] },        // categorías del usuario
   goals: [],                                // metas de ahorro del usuario
+  fixedExp: [],                             // gastos fijos recurrentes (recibos mensuales)
   currency: localStorage.getItem("mc_currency") || "EUR",  // preferencia local
 };
 let sb = null;          // cliente de Supabase
@@ -196,7 +197,7 @@ $("#logout-btn").addEventListener("click", async () => {
 });
 
 async function onLogout() {
-  state.user = null; state.tx = []; state.cats = { income: [], expense: [] }; state.goals = [];
+  state.user = null; state.tx = []; state.cats = { income: [], expense: [] }; state.goals = []; state.fixedExp = [];
   authMode = "signin"; setupAuthScreen(); showOnly("#auth-screen");
   $("#password").value = "";
 }
@@ -223,16 +224,18 @@ function withTimeout(promise, ms) {
 // Devuelve true si cargó bien, false si falló. NUNCA se queda colgada.
 async function loadAll(seeded) {
   try {
-    const [txRes, catRes, goalsRes] = await withTimeout(Promise.all([
+    const [txRes, catRes, goalsRes, feRes] = await withTimeout(Promise.all([
       sb.from("transactions").select("*").order("date", { ascending: false }).order("created_at", { ascending: false }),
       sb.from("categories").select("*"),
       sb.from("goals").select("*").order("created_at", { ascending: true }),
+      sb.from("fixed_expenses").select("*").order("created_at", { ascending: true }),
     ]), 15000);
     if (txRes.error) throw txRes.error;
     if (catRes.error) throw catRes.error;
     state.tx = txRes.data || [];
-    // La tabla goals puede no existir aún (si no se ha ejecutado el SQL): si falla, lista vacía.
+    // Tablas que pueden no existir aún (si no se ha ejecutado su SQL): si fallan, lista vacía.
     state.goals = goalsRes.error ? [] : (goalsRes.data || []);
+    state.fixedExp = feRes.error ? [] : (feRes.data || []);
     let cats = catRes.data || [];
     // Sembrar las categorías por defecto SOLO una vez (evita bucle infinito si algo falla).
     if (cats.length === 0 && !seeded) { await seedCategories(); return loadAll(true); }
@@ -386,7 +389,6 @@ function buildCategoryCard(mTx) {
    ============================================================ */
 let addType = "expense";
 let addMethod = "efectivo";
-let addFixed = false;   // gasto fijo (true) o variable (false)
 function renderAdd() {
   const v = $("#view-add");
   v.innerHTML = `
@@ -407,13 +409,6 @@ function renderAdd() {
         <button type="button" class="chip" data-m="tarjeta">💳 Tarjeta</button>
       </div>
     </div>
-    <div class="field" id="fixed-field">
-      <label>Tipo de gasto</label>
-      <div class="chips" id="fixed-chips" style="margin-bottom:0">
-        <button type="button" class="chip" data-x="variable">Variable</button>
-        <button type="button" class="chip" data-x="fijo">Fijo</button>
-      </div>
-    </div>
     <div class="field"><label for="f-cat">Categoría</label><select id="f-cat"></select></div>
     <div class="grid2">
       <div class="field"><label for="f-date">Fecha</label><input id="f-date" type="date" value="${todayISO()}" /></div>
@@ -426,7 +421,6 @@ function renderAdd() {
   const setType = (t) => {
     addType = t;
     v.querySelectorAll("#type-toggle button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
-    $("#fixed-field", v).classList.toggle("hidden", t !== "expense");   // fijo/variable solo para gastos
     fillCats();
   };
   v.querySelectorAll("#type-toggle button").forEach(b => b.addEventListener("click", () => setType(b.dataset.t)));
@@ -439,13 +433,6 @@ function renderAdd() {
   v.querySelectorAll("#method-chips .chip").forEach(c => c.addEventListener("click", () => setMethod(c.dataset.m)));
   setMethod(addMethod);
 
-  const setFixed = (x) => {
-    addFixed = (x === "fijo");
-    v.querySelectorAll("#fixed-chips .chip").forEach(c => c.classList.toggle("on", c.dataset.x === x));
-  };
-  v.querySelectorAll("#fixed-chips .chip").forEach(c => c.addEventListener("click", () => setFixed(c.dataset.x)));
-  setFixed(addFixed ? "fijo" : "variable");
-
   $("#f-save", v).addEventListener("click", async () => {
     const amount = parseFloat($("#f-amount", v).value.replace(",", ".").trim());
     if (!amount || amount <= 0) { toast("Introduce un importe válido"); $("#f-amount", v).focus(); return; }
@@ -456,14 +443,13 @@ function renderAdd() {
       amount: Math.round(amount * 100) / 100,
       category: $("#f-cat", v).value,
       method: addMethod,
-      fixed: addType === "expense" ? addFixed : false,
       date: $("#f-date", v).value || todayISO(),
       note: $("#f-note", v).value.trim(),
     };
     const { data, error } = await sb.from("transactions").insert(row).select().single();
     if (error) {
-      const faltaColumna = /method|fixed|column|schema cache/i.test(error.message || "");
-      toast(faltaColumna ? "Falta actualizar Supabase: ejecuta el SQL (columnas «method» y «fixed»)." : "No se pudo guardar");
+      const faltaColumna = /method|column|schema cache/i.test(error.message || "");
+      toast(faltaColumna ? "Falta actualizar Supabase: ejecuta el SQL de la columna «method»." : "No se pudo guardar");
       btn.disabled = false; btn.textContent = "Guardar movimiento"; return;
     }
     state.tx.unshift(data);
@@ -517,19 +503,90 @@ function renderMovs() {
   }
 
   const body = $("#movs-body", v);
-  if (filtered.length === 0) { body.appendChild(emptyState("Nada por aquí", "No hay movimientos con este filtro.")); return; }
   if (type === "expense") {
-    // Dos apartados: gastos fijos y gastos variables.
-    const seccion = (label, list) => {
-      const h = el("div", "section-label"); h.textContent = label; body.appendChild(h);
-      if (list.length) renderMonthGroups(body, list, color);
-      else { const p = el("p"); p.style.cssText = "color:var(--muted);font-size:13px;margin:0 2px 10px"; p.textContent = "Nada aquí todavía."; body.appendChild(p); }
-    };
-    seccion("Gastos fijos", filtered.filter(t => t.fixed));
-    seccion("Gastos variables", filtered.filter(t => !t.fixed));
+    // Apartado Gastos fijos: recibos recurrentes con su interruptor Pagado/Pendiente.
+    renderFixedSection(body);
+    // Apartado Gastos variables: gastos normales (sin gasto fijo asociado).
+    const hv = el("div", "section-label"); hv.textContent = "Gastos variables"; body.appendChild(hv);
+    const variables = filtered.filter(t => !t.fixed_expense_id);
+    if (variables.length) renderMonthGroups(body, variables, color);
+    else { const p = el("p"); p.style.cssText = "color:var(--muted);font-size:13px;margin:0 2px 10px"; p.textContent = "Nada aquí todavía."; body.appendChild(p); }
   } else {
+    if (filtered.length === 0) { body.appendChild(emptyState("Nada por aquí", "No hay movimientos con este filtro.")); return; }
     renderMonthGroups(body, filtered, color);
   }
+}
+
+/* Apartado de gastos fijos: lista de recibos recurrentes con interruptor Pagado/Pendiente.
+   Pagado = existe un gasto (transacción) enlazado este mes → baja del saldo total. */
+function renderFixedSection(container) {
+  const h = el("div", "section-label"); h.textContent = "Gastos fijos"; container.appendChild(h);
+
+  const addBtn = el("button", "btn");
+  addBtn.textContent = "＋ Nuevo gasto fijo";
+  addBtn.style.cssText = "margin-bottom:12px";
+  container.appendChild(addBtn);
+  const form = el("div", "card hidden");
+  form.innerHTML = `
+    <div class="field"><label>Nombre</label><input class="fe-name" type="text" placeholder="Ej. Alquiler" /></div>
+    <div class="field"><label>Importe (€/mes)</label><input class="fe-amount" inputmode="decimal" placeholder="Ej. 800" /></div>
+    <button class="btn fe-create">Crear</button>`;
+  container.appendChild(form);
+  addBtn.addEventListener("click", () => form.classList.toggle("hidden"));
+  form.querySelector(".fe-create").addEventListener("click", async () => {
+    const name = form.querySelector(".fe-name").value.trim();
+    const amount = Math.round(parseFloat((form.querySelector(".fe-amount").value || "").replace(",", ".")) * 100) / 100;
+    if (!name) { toast("Ponle un nombre"); return; }
+    if (!amount || amount <= 0) { toast("Importe no válido"); return; }
+    const { data, error } = await sb.from("fixed_expenses").insert({ user_id: state.user.id, name, amount }).select().single();
+    if (error) { toast(/fixed_expenses|relation|does not exist|schema cache/i.test(error.message || "") ? "Falta crear la tabla en Supabase: ejecuta el SQL de «fixed_expenses»." : "No se pudo crear"); return; }
+    state.fixedExp.push(data);
+    renderMovs();
+  });
+
+  if (state.fixedExp.length === 0) {
+    const p = el("p"); p.style.cssText = "color:var(--muted);font-size:13px;margin:0 2px 12px";
+    p.textContent = "Aún no hay gastos fijos. Crea uno (ej. Alquiler, Seguro…).";
+    container.appendChild(p);
+    return;
+  }
+  const nowKey = monthKey(todayISO());
+  state.fixedExp.forEach(fe => {
+    const payTx = state.tx.find(t => t.fixed_expense_id === fe.id && monthKey(t.date) === nowKey);
+    const paid = !!payTx;
+    const card = el("div", "card");
+    card.innerHTML = `
+      <div class="goal-top">
+        <div class="goal-ic">📌</div>
+        <div class="goal-name">${escapeHtml(fe.name)}</div>
+        <div class="goal-saved num">${fmt(Number(fe.amount))}</div>
+      </div>
+      <div class="goal-actions">
+        <button data-act="toggle" class="${paid ? "add" : ""}" style="flex:1">${paid ? "✓ Pagado" : "Marcar pagado"}</button>
+        <button class="del" data-act="del" aria-label="Eliminar gasto fijo">🗑️</button>
+      </div>`;
+    card.querySelector('[data-act="toggle"]').addEventListener("click", async () => {
+      if (paid) {
+        const { error } = await sb.from("transactions").delete().eq("id", payTx.id);
+        if (error) { toast("No se pudo actualizar"); return; }
+        state.tx = state.tx.filter(t => t.id !== payTx.id);
+      } else {
+        const row = { user_id: state.user.id, type: "expense", amount: Number(fe.amount), category: fe.name, method: "tarjeta", fixed: true, fixed_expense_id: fe.id, date: todayISO() };
+        const { data, error } = await sb.from("transactions").insert(row).select().single();
+        if (error) { toast(/fixed_expense_id|column|schema cache/i.test(error.message || "") ? "Falta el SQL: ejecuta el de «fixed_expenses»." : "No se pudo guardar"); return; }
+        state.tx.unshift(data);
+      }
+      renderMovs();
+    });
+    card.querySelector('[data-act="del"]').addEventListener("click", async () => {
+      if (!confirm(`¿Eliminar el gasto fijo "${fe.name}"?`)) return;
+      const { error } = await sb.from("fixed_expenses").delete().eq("id", fe.id);
+      if (error) { toast("No se pudo eliminar"); return; }
+      state.fixedExp = state.fixedExp.filter(x => x.id !== fe.id);
+      renderMovs();
+    });
+    container.appendChild(card);
+  });
 }
 
 function renderMonthGroups(container, list, color) {

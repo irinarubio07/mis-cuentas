@@ -5,6 +5,25 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-16 — Gastos fijos como recibos recurrentes (Paso 1) 📌
+
+**Hecho:**
+- Cambio de modelo: los gastos fijos dejan de marcarse por transacción (fuera el interruptor
+  Fijo/Variable del alta) y pasan a ser **recibos recurrentes** que la usuaria crea (nombre + importe).
+- **BD:** tabla nueva `fixed_expenses` (name, amount) con RLS + columna `transactions.fixed_expense_id`
+  (enlaza el pago con su gasto fijo). Añadidas a `supabase-setup.sql`. ⚠️ La usuaria debe ejecutar el SQL.
+- **Movimientos → Gastos → Gastos fijos:** lista de recibos con **＋ Nuevo gasto fijo**, interruptor
+  **Pagado / Pendiente** y borrar. **Pagado** = crea el gasto real (transacción enlazada, baja del saldo
+  total); **Pendiente** = lo borra. «Pagado este mes» = existe transacción enlazada este mes (se reinicia solo).
+- **Gastos variables:** los gastos normales (sin `fixed_expense_id`). Los antiguos marcados `fixed` a mano
+  (sin enlace) pasan a verse como variables.
+- `app.js?v` y `CACHE` v19→v20. Verificado en local (fijo pagado/pendiente, crear, alta sin Fijo/Variable;
+  consola sin errores).
+
+**Siguiente (Paso 2):** «Saldo disponible» en el Panel = Saldo total − (gastos fijos pendientes del mes).
+
+---
+
 ## 2026-07-16 — Recuperar contraseña: cambiado a flujo por ENLACE 🔗
 
 **Hecho (rectifica la entrada de abajo):**

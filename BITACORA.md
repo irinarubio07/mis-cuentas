@@ -5,6 +5,24 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-16 — Recuperar contraseña: cambiado a flujo por ENLACE 🔗
+
+**Hecho (rectifica la entrada de abajo):**
+- Supabase (plan free) NO deja editar la plantilla del correo sin SMTP propio → el flujo de
+  «código» (OTP) quedaba bloqueado (no se podía meter `{{ .Token }}`). Cambiado a **flujo por enlace**,
+  que usa el correo por defecto sin tocar plantillas ni SMTP.
+- `recover-request`: `resetPasswordForEmail(email, { redirectTo: origin+pathname })`; mensaje
+  «revisa tu correo y pulsa el enlace».
+- Al abrir la app desde el enlace: `boot` detecta `#type=recovery` y `onAuthStateChange` captura
+  `PASSWORD_RECOVERY` → muestra **«Nueva contraseña»** (solo contraseña) → `updateUser({password})`
+  → entra en la app.
+- Quitado el paso del código (`verifyOtp`, campo código, `recoverEmail`). `app.js?v` y `CACHE` v18→v19.
+- Verificado en local (pantallas correctas, consola sin errores).
+- ⚠️ La usuaria debe añadir la URL de la app en Supabase → Authentication → URL Configuration →
+  Redirect URLs: `https://irinarubio07.github.io/mis-cuentas/**`.
+
+---
+
 ## 2026-07-15 — Recuperar contraseña con código (OTP) 🔑
 
 **Hecho:**

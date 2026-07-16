@@ -2,7 +2,7 @@
    Cachea la interfaz para que la app abra rápido y sin conexión.
    Los datos se leen/escriben en Supabase, por lo que las operaciones
    con datos necesitan internet. Sube la versión al cambiar archivos. */
-const CACHE = "mis-cuentas-cloud-v18";
+const CACHE = "mis-cuentas-cloud-v19";
 const ASSETS = [
   "./", "./index.html", "./app.js", "./config.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",

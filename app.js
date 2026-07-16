@@ -15,7 +15,6 @@ const state = {
 };
 let sb = null;          // cliente de Supabase
 let authMode = "signin"; // signin | signup | recover-request | recover-verify
-let recoverEmail = "";   // correo recordado entre los dos pasos de recuperación
 
 /* ---------- utilidades ---------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -75,14 +74,25 @@ async function boot() {
   } catch (e) {
     showOnly("#config-screen"); return;
   }
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) { await onLogin(session.user); }
-  else { setupAuthScreen(); showOnly("#auth-screen"); }
+  const isRecovery = location.hash.includes("type=recovery");
 
-  sb.auth.onAuthStateChange((_event, session) => {
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      authMode = "recover-verify"; setupAuthScreen(); showOnly("#auth-screen");
+      return;
+    }
     if (session && !state.user) { onLogin(session.user); }
     else if (!session && state.user) { onLogout(); }
   });
+
+  if (isRecovery) {
+    // Llegó por el enlace de recuperación: mostrar el formulario de nueva contraseña.
+    authMode = "recover-verify"; setupAuthScreen(); showOnly("#auth-screen");
+    return;
+  }
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { await onLogin(session.user); }
+  else { setupAuthScreen(); showOnly("#auth-screen"); }
 }
 
 /* ============================================================
@@ -95,16 +105,16 @@ function setupAuthScreen() {
   const subs = {
     signin: "Entra para ver tus cuentas en cualquier ordenador.",
     signup: "Regístrate una vez; luego entra desde donde quieras.",
-    "recover-request": "Escribe tu correo y te enviaremos un código de 6 dígitos.",
-    "recover-verify": "Escribe el código que te ha llegado por correo y tu nueva contraseña.",
+    "recover-request": "Escribe tu correo y te enviaremos un enlace para crear una contraseña nueva.",
+    "recover-verify": "Escribe tu nueva contraseña.",
   };
-  const btns = { signin: "Entrar", signup: "Crear cuenta", "recover-request": "Enviar código", "recover-verify": "Guardar contraseña" };
+  const btns = { signin: "Entrar", signup: "Crear cuenta", "recover-request": "Enviar enlace", "recover-verify": "Guardar contraseña" };
   $("#auth-title").textContent = titles[mode];
   $("#auth-sub").textContent = subs[mode];
   $("#auth-btn").textContent = btns[mode];
   // Campos visibles según el paso
   $("#email-field").classList.toggle("hidden", mode === "recover-verify");
-  $("#code-field").classList.toggle("hidden", mode !== "recover-verify");
+  $("#code-field").classList.add("hidden");   // ya no se usa código (flujo por enlace)
   $("#password-field").classList.toggle("hidden", mode === "recover-request");
   $("#password-label").textContent = mode === "recover-verify" ? "Nueva contraseña" : "Contraseña";
   $("#password").setAttribute("autocomplete", mode === "signin" ? "current-password" : "new-password");
@@ -127,7 +137,6 @@ $("#auth-form").addEventListener("submit", async (e) => {
   const msg = $("#auth-msg"); msg.className = "msg";
   const email = $("#email").value.trim();
   const password = $("#password").value;
-  const code = $("#code").value.trim();
   const btn = $("#auth-btn");
   const mode = authMode;
   try {
@@ -150,21 +159,17 @@ $("#auth-form").addEventListener("submit", async (e) => {
     } else if (mode === "recover-request") {
       if (!email) { msg.textContent = "Escribe tu correo."; msg.className = "msg err"; return; }
       btn.disabled = true; btn.textContent = "Enviando…";
-      const { error } = await sb.auth.resetPasswordForEmail(email);
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
       if (error) throw error;
-      recoverEmail = email;
-      authMode = "recover-verify";
-      msg.textContent = "Te hemos enviado un código a " + email + ". Míralo en tu correo (revisa también spam).";
+      msg.textContent = "Te hemos enviado un correo a " + email + ". Ábrelo y pulsa el enlace para crear tu contraseña nueva (revisa también spam).";
       msg.className = "msg ok";
     } else if (mode === "recover-verify") {
-      if (code.length < 6) { msg.textContent = "Escribe el código de 6 dígitos del correo."; msg.className = "msg err"; return; }
       if (password.length < 6) { msg.textContent = "La nueva contraseña debe tener al menos 6 caracteres."; msg.className = "msg err"; return; }
       btn.disabled = true; btn.textContent = "Guardando…";
-      const { error: vErr } = await sb.auth.verifyOtp({ email: recoverEmail, token: code, type: "recovery" });
-      if (vErr) throw vErr;
-      const { error: uErr } = await sb.auth.updateUser({ password });
+      const { data, error: uErr } = await sb.auth.updateUser({ password });
       if (uErr) throw uErr;
-      // verifyOtp crea la sesión → onAuthStateChange entra en la app con la contraseña ya cambiada.
+      // La sesión de recuperación ya existe (llegó por el enlace) → entramos con la nueva contraseña.
+      if (data && data.user) onLogin(data.user);
     }
   } catch (err) {
     msg.textContent = traducirError(err.message);

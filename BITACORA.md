@@ -5,6 +5,19 @@ equipo (oficina / portátil de casa). Lo más reciente arriba.
 
 ---
 
+## 2026-07-16 — Panel: «Saldo disponible» + fix legibilidad tarjeta de saldo (Paso 2) 💰
+
+**Hecho:**
+- **Saldo disponible** en el Panel (bajo el Saldo total) = Saldo total − gastos fijos **pendientes**
+  del mes. Solo aparece si hay gastos fijos definidos. Se mantiene estable pagues o no (al pagar un
+  fijo pasa de «reservado» a «gastado» y el disponible no cambia).
+- **Bug arreglado:** la tarjeta de saldo tenía el texto en blanco (`#fff`) sobre el azul pálido (se
+  leía lavado) — el cambio de paleta no había llegado ahí. Ahora `--on-pine` (azul oscuro, legible).
+- `app.js?v` y `CACHE` v20→v21. Verificado en local (total 1160, pendiente 50, disponible 1110;
+  consola sin errores).
+
+---
+
 ## 2026-07-16 — Gastos fijos como recibos recurrentes (Paso 1) 📌
 
 **Hecho:**

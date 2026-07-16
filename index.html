@@ -74,9 +74,11 @@
 
   .card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
   .card h2{margin:0 0 14px;font-size:13px;font-weight:640;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-  .balance-card{background:var(--pine);color:#fff;border:none}
+  .balance-card{background:var(--pine);color:var(--on-pine);border:none}
   .balance-card .lbl{font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;opacity:.72;margin-bottom:6px}
   .balance-card .amount{font-size:40px;font-weight:600;letter-spacing:-.03em;line-height:1}
+  .balance-card .avail{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;padding-top:10px;border-top:1px solid rgba(18,58,80,.20);font-size:13.5px}
+  .balance-card .avail .num{font-size:19px;font-weight:600}
   .balance-card .month{opacity:.75;font-size:13px;margin-top:10px}
   .split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
   .stat{background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
@@ -233,6 +235,6 @@
 <!-- Tu configuración (edítala) -->
 <script src="config.js"></script>
 <!-- Lógica de la app -->
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

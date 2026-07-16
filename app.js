@@ -308,10 +308,16 @@ function renderPanel() {
   const mTx = tx.filter(t => monthKey(t.date) === nowKey);
   const mIn = mTx.filter(t => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
   const mOut = mTx.filter(t => t.type === "expense").reduce((s, t) => s + Number(t.amount), 0);
+  // Saldo disponible = saldo total − gastos fijos pendientes (no pagados) de este mes.
+  const pendingFixed = state.fixedExp.reduce((s, fe) =>
+    s + (tx.some(t => t.fixed_expense_id === fe.id && monthKey(t.date) === nowKey) ? 0 : Number(fe.amount)), 0);
+  const available = balance - pendingFixed;
 
   const v = $("#view-panel"); v.innerHTML = "";
   const hero = el("div", "card balance-card");
-  hero.innerHTML = `<div class="lbl">Saldo total</div><div class="amount num">${fmt(balance)}</div><div class="month">${cap(monthLabel(nowKey))}</div>`;
+  hero.innerHTML = `<div class="lbl">Saldo total</div><div class="amount num">${fmt(balance)}</div>` +
+    (state.fixedExp.length ? `<div class="avail"><span>Disponible</span><span class="num">${fmt(available)}</span></div>` : "") +
+    `<div class="month">${cap(monthLabel(nowKey))}</div>`;
   v.appendChild(hero);
 
   const split = el("div", "split");
